@@ -37,7 +37,7 @@ Ein Haushalt, Personen mit `kind = parent | child`. Login nur per Magic Link (Su
 
 | Bereich | Eltern | Kinder |
 | --- | --- | --- |
-| Jahresplan, Termine, Schulbefreiung, Urlaub | lesen + schreiben | lesen (ohne Urlaubskonto) |
+| Jahresplan, Termine, Schulbefreiung, Urlaub | lesen + schreiben | lesen (ohne Urlaubskonto und ohne Urlaubstage/-status der Eltern) |
 | Reisen, Tagesplan, Karte | lesen + schreiben | lesen |
 | **Budget, Ausgaben, Abrechnung, Kostenfelder** | lesen + schreiben | **nichts – auch nicht in Navigation, PDF, Summen** |
 | Packliste | alles | eigene + gemeinsame Einträge abhaken |
@@ -111,13 +111,14 @@ docs/open-questions.md
 ## 5. Datenmodell
 
 ### 5.1 Schema
-Vollständig in `supabase/migrations/0001_init.sql` (26 Tabellen, Enums, RLS, Trigger, Realtime-Publication). Gegen Postgres 16 geprüft; RLS-Test: Kind sieht 0 Ausgaben, darf an Packliste nur `checked` ändern.
+Vollständig in `supabase/migrations/` (`0001_init.sql` + Folgemigrationen; 27 Tabellen, Enums, RLS, Trigger, Realtime-Publication). Gegen Postgres 16 geprüft; RLS-Test: Kind sieht 0 Ausgaben, darf an Packliste nur `checked` ändern, sieht keine Urlaubstage der Eltern, stimmt nur für sich selbst ab.
 
 Wichtige Entscheidungen:
 - `day_item.day IS NULL` = Ideen-Ablage (RP-04).
 - `day_item.position` ist `double precision` für fraktionale Sortierung (§6.2).
 - `expense.amount_home` ist generierte Spalte `round(amount * fx_rate, 2)`.
 - Budget liegt in eigener Tabelle `budget_line`, damit Kinder über `trip` keine Kosten sehen.
+- Urlaubstage/-status der Eltern liegen aus demselben Grund in eigener Tabelle `event_person_leave` (nur Eltern, nur für Personen mit `kind = parent`); `event_person` enthält nur noch die Schulfelder (`0002_leave_parent_only.sql`).
 - `trip.kdrive_folder_id` = von der App angelegter Reiseordner.
 
 ### 5.2 Erste Nutzer anlegen
@@ -157,12 +158,12 @@ schoolDaysMissed(range, child) =
 ```
 Einordnung pro Kind: `0 Schultage & alle Tage in Ferien` → „In den Ferien“; `0 Schultage` → „Wochenende/schulfrei“; sonst „Schulbefreiung nötig (n Tage)“ und `school_status` wird automatisch `to_request`, falls noch `not_needed`. Der Wert in `event_person.school_days` ist überschreibbar (z. B. Anreise am Vortag).
 
-**Urlaubstage Eltern (JP-06):** `workDays(range)` = Mo–Fr ohne gesetzliche Feiertage BW. Vorschlag in `leave_days`, überschreibbar (halbe Tage erlaubt). Status `not_needed | planned | requested | approved`.
+**Urlaubstage Eltern (JP-06):** `workDays(range)` = Mo–Fr ohne gesetzliche Feiertage BW. Vorschlag in `event_person_leave.leave_days`, überschreibbar (halbe Tage erlaubt). Status `not_needed | planned | requested | approved`.
 
 **Konflikte (JP-08)** – berechnet, nicht gespeichert. Badge am Termin + Liste auf dem Dashboard:
 1. Kind mit `school_days > 0` und `school_status ∈ {not_needed, to_request}`.
 2. `school_request_deadline` < heute + 7 Tage und Status ≠ `requested|approved`.
-3. Elternteil mit `leave_days > 0` und `leave_status ≠ approved`, Termin startet in < 30 Tagen.
+3. Elternteil mit `leave_days > 0` und `leave_status ≠ approved`, Termin startet in < 30 Tagen (nur Eltern sehen diesen Konflikt).
 4. Zwei Termine mit gemeinsamer Person überschneiden sich.
 5. Reise verknüpft, aber Reisezeitraum ≠ Terminzeitraum (Hinweis, kein Fehler).
 
@@ -186,7 +187,7 @@ Einordnung pro Kind: `0 Schultage & alle Tage in Ferien` → „In den Ferien“
   1. `fx_rate` für (Datum, Währung, EUR) vorhanden → nehmen.
   2. sonst Frankfurter: `GET https://api.frankfurter.dev/v1/{YYYY-MM-DD}?from={CUR}&to=EUR` (EZB, kein Key; für Zukunftsdaten → letzter verfügbarer Kurs, Hinweis „vorläufig“). Endpunkt vor Implementierung prüfen.
   3. Nutzer kann Kurs überschreiben (`fx_overridden = true`, z. B. echter Kartenkurs).
-- Cron `api/cron/fx` täglich 17:00 Europe/Berlin: aktualisiert Kurse aller `expense` mit `status = planned` und `fx_overridden = false`.
+- Cron `api/cron/fx` werktags 17:00 Europe/Berlin, ganzjährig (Sommer- und Winterzeit, siehe §8.2): aktualisiert Kurse aller `expense` mit `status = planned` und `fx_overridden = false`.
 - **Soll/Ist (AU-05):** Soll = Budget je Kategorie; Ist = Summe `amount_home` mit Status `booked|paid` minus `refunded`; „Geplant offen“ = Status `planned`. Darstellung: Tabelle je Kategorie + Fortschrittsbalken.
 - **Endabrechnung (AU-07):** Reise auf `done` setzen → Abrechnungsansicht (alle Posten, Summen je Kategorie/Währung/Zahler) + Export CSV (`;`-getrennt, de-DE-Zahlen) und PDF.
 - Beleg: optional `kdrive_file_id` (Upload in Reiseordner/Unterordner `Belege`).
@@ -261,7 +262,7 @@ getDownloadUrl(fileId): Promise<string>   // für Anzeige/Download
 | `/login` | E-Mail eingeben → Magic Link | alle |
 | `/` Dashboard | Nächste Reise (Countdown, heutiger Tag), offene Konflikte (§6.1), offene Abstimmungen, Fristen Schulbefreiung | alle (Kinder ohne Urlaub/Kosten) |
 | `/jahr` | Jahres- oder Schuljahresraster: Zeilen = Personen, Spalten = Tage (Monatsblöcke), Ferien/Feiertage schraffiert, Termine als Balken, Konflikt-Badges; Termin anlegen per Ziehen über Zeitraum oder Button | alle (Eltern schreiben) |
-| `/jahr/termin/[id]` | Termin-Details, Tabelle pro Person: Schultage, Status Schulbefreiung + Frist / Urlaubstage + Status; Button „Reise erstellen“ | Eltern schreiben |
+| `/jahr/termin/[id]` | Termin-Details, Tabelle pro Person: Schultage, Status Schulbefreiung + Frist / Urlaubstage + Status (Urlaub nur für Eltern sichtbar); Button „Reise erstellen“ | Eltern schreiben |
 | `/reisen` | Liste: kommend, Ideen, vergangen; Status-Chip | alle |
 | `/reisen/neu` | Titel, Zeitraum, Modus, Teilnehmende, Aktivitäten, Klima | Eltern |
 | `/reisen/[id]/plan` | Tagesplan mit Ideen-Ablage, Drag & Drop, Eintrag-Dialog je kind | alle (Eltern schreiben) |
@@ -299,8 +300,11 @@ CALDAV_URL= / CALDAV_USER= / CALDAV_PASSWORD=
 | Pfad | Zeitplan | Zweck |
 | --- | --- | --- |
 | `/api/cron/holidays` | `0 3 1 * *` | Ferien/Feiertage BW importieren |
-| `/api/cron/fx` | `0 16 * * 1-5` | Kurse geplanter Ausgaben aktualisieren |
+| `/api/cron/fx?slot=summer` | `0 15 * * 1-5` | Kurse geplanter Ausgaben aktualisieren (17 Uhr MESZ) |
+| `/api/cron/fx?slot=winter` | `0 16 * * 1-5` | Kurse geplanter Ausgaben aktualisieren (17 Uhr MEZ) |
 | `/api/cron/keepalive` | `0 5 * * *` | Supabase-Gratisprojekt vor Pause schützen (1 leichte Query) |
+
+Vercel Cron kennt nur UTC. 17:00 Europe/Berlin ist im Winter 16:00 UTC, im Sommer 15:00 UTC. Deshalb gibt es für `fx` zwei Einträge (je einmal täglich, Hobby-tauglich); der Handler prüft zuerst `formatInTimeZone(now, 'Europe/Berlin', 'H') === '17'` und beendet sich sonst sofort mit `200 skipped`. Da Hobby-Crons irgendwann innerhalb der angegebenen Stunde feuern, läuft genau einer der beiden Einträge pro Tag, ganzjährig um 17:xx Ortszeit.
 
 ### 8.3 Fehler & Logging
 Integrationen werfen typisierte Fehler; UI zeigt Toast + Retry. Keine personenbezogenen Daten in Logs.
@@ -353,7 +357,7 @@ Integrationen werfen typisierte Fehler; UI zeigt Toast + Retry. Keine personenbe
 
 ### 10.1 Pflicht-Tests
 - Vitest: `dates.ts`, `ordering.ts`, `packing-rules.ts`, `money.ts`, Poll-Ranking.
-- SQL-RLS-Test (`supabase/tests/rls.sql`, läuft mit `supabase test db` oder psql): Eltern sehen Ausgaben, Kind sieht 0; Kind kann `packing_item.name` nicht ändern, `checked` schon; Kind sieht `document_link` Typ `insurance` nicht; Kind kann nicht für andere Personen abstimmen.
+- SQL-RLS-Test (`supabase/tests/rls.sql`, läuft mit `supabase test db` oder psql): Eltern sehen Ausgaben, Kind sieht 0; Kind kann `packing_item.name` nicht ändern, `checked` schon; Kind sieht `document_link` Typ `insurance` nicht; Kind sieht keine Urlaubstage der Eltern (`event_person_leave`, `leave_balance`); Kind kann nicht für andere Personen abstimmen (Insert, Update, Delete fremder Stimmen), für sich selbst schon.
 - Playwright Smoke: Login (Test-Magic-Link via lokaler Inbucket), Reise anlegen, Eintrag verschieben.
 
 ### 10.2 Seed (`supabase/seed.sql`)
@@ -374,7 +378,7 @@ Integrationen werfen typisierte Fehler; UI zeigt Toast + Retry. Keine personenbe
 | --- | --- |
 | Buchungsimport (RP-07) | Eingehende Mail (Inbound-Webhook eines Mail-Dienstes) → `inbound_email` → Claude API mit JSON-Schema (Flug/Hotel/Mietwagen/Campingplatz) → Vorschlag zur Bestätigung → `day_item` + Beleg nach kDrive |
 | Kalender-Import `#reise` (JP-11) | Cron liest CalDAV (tsdav), nur Termine mit Titel-Präfix `#reise`; Präfix entfernen; Upsert über `event.calendar_uid`; nie zurückschreiben |
-| Urlaubskonto (JP-07) | Auswertung aus `leave_balance` + `event_person.leave_days` je Urlaubsjahr |
+| Urlaubskonto (JP-07) | Auswertung aus `leave_balance` + `event_person_leave.leave_days` je Urlaubsjahr |
 | Reisehinweise AA (RF-01) | Cron `https://www.auswaertiges-amt.de/opendata/travelwarning` → `country_info`; Quelle + Stand anzeigen (Nutzungsbedingung) |
 | KI-Reiseführer (RF-03) | Claude API erzeugt Rubriken Transport/Sicherheit/Geld/Kultur je Land mit Quellenliste, gecacht in `country_info.ai_summary`, klar als KI gekennzeichnet |
 | Gespann (RA-01..04) | ORS-Profil `driving-hgv` mit Fahrzeugmaßen; Fahrzeit selbst aus Distanz und `trailer_speed` je Land rechnen; Etappen/Pausen |
