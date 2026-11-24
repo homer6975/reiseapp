@@ -438,8 +438,6 @@ export type Database = {
       event_person: {
         Row: {
           event_id: string;
-          leave_days: number;
-          leave_status: Database["public"]["Enums"]["leave_status"];
           person_id: string;
           school_days: number;
           school_request_deadline: string | null;
@@ -448,8 +446,6 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           event_id: string;
-          leave_days?: number;
-          leave_status?: Database["public"]["Enums"]["leave_status"];
           person_id: string;
           school_days?: number;
           school_request_deadline?: string | null;
@@ -457,8 +453,6 @@ export type Database = {
         };
         Update: {
           event_id?: string;
-          leave_days?: number;
-          leave_status?: Database["public"]["Enums"]["leave_status"];
           person_id?: string;
           school_days?: number;
           school_request_deadline?: string | null;
@@ -478,6 +472,36 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "person";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      event_person_leave: {
+        Row: {
+          event_id: string;
+          leave_days: number;
+          leave_status: Database["public"]["Enums"]["leave_status"];
+          person_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          event_id: string;
+          leave_days?: number;
+          leave_status?: Database["public"]["Enums"]["leave_status"];
+          person_id: string;
+        };
+        Update: {
+          event_id?: string;
+          leave_days?: number;
+          leave_status?: Database["public"]["Enums"]["leave_status"];
+          person_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_person_leave_event_id_person_id_fkey";
+            columns: ["event_id", "person_id"];
+            isOneToOne: true;
+            referencedRelation: "event_person";
+            referencedColumns: ["event_id", "person_id"];
           },
         ];
       };
