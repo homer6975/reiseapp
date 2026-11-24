@@ -1,7 +1,7 @@
 -- Familien-Trips · Seed (SPEC §10.2)
 -- Wird von `supabase db reset` lokal eingespielt.
--- ANNAHME: Namen und E-Mail-Adressen sind Platzhalter. Vor `supabase db push` /
--- Einspielen in die Cloud durch die echten Werte ersetzen (offene Frage, M1).
+-- Das Repo ist öffentlich: hier stehen nur Platzhalter. Die echten Namen und
+-- E-Mail-Adressen der Familie liegen ausschließlich in der Supabase-Datenbank.
 
 -- Haushalt ------------------------------------------------------------------
 insert into household (id, name, state_code, home_currency)
@@ -11,8 +11,8 @@ values ('00000000-0000-4000-8000-000000000001', 'Familie', 'DE-BW', 'EUR');
 insert into person (id, household_id, display_name, kind, email, color) values
   ('00000000-0000-4000-8000-000000000101', '00000000-0000-4000-8000-000000000001', 'Elternteil 1', 'parent', 'eltern1@example.com', '#2563eb'),
   ('00000000-0000-4000-8000-000000000102', '00000000-0000-4000-8000-000000000001', 'Elternteil 2', 'parent', 'eltern2@example.com', '#db2777'),
-  ('00000000-0000-4000-8000-000000000201', '00000000-0000-4000-8000-000000000001', 'Kind 1',       'child',  null,                  '#16a34a'),
-  ('00000000-0000-4000-8000-000000000202', '00000000-0000-4000-8000-000000000001', 'Kind 2',       'child',  null,                  '#ea580c');
+  ('00000000-0000-4000-8000-000000000201', '00000000-0000-4000-8000-000000000001', 'Kind 1',       'child',  null, '#16a34a'),
+  ('00000000-0000-4000-8000-000000000202', '00000000-0000-4000-8000-000000000001', 'Kind 2',       'child',  null, '#ea580c');
 
 -- Packvorlagen --------------------------------------------------------------
 insert into packing_template_item (household_id, category, name, rules, qty_rule, per_person, sort)
