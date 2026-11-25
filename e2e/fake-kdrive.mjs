@@ -47,12 +47,12 @@ createServer(async (req, res) => {
     });
   // Fake-openrouteservice (Geocoding + Directions)
   if (p === "/__ors_calls") return json(res, 200, orsCalls);
-  if (p.startsWith("/geocode/") || p.startsWith("/v2/directions/")) {
+  if (p.startsWith("/pelias/") || p.startsWith("/openrouteservice/")) {
     if (req.headers.authorization !== "test-ors-key")
       return json(res, 403, {
         error: "Access to this API has been disallowed",
       });
-    if (p === "/geocode/search") {
+    if (p === "/pelias/v1/search") {
       orsCalls.geocode++;
       const text = (url.searchParams.get("text") ?? "").toLowerCase();
       const hits = PLACES.filter((pl) => pl.name.toLowerCase().includes(text));
@@ -68,7 +68,10 @@ createServer(async (req, res) => {
         })),
       });
     }
-    if (p === "/v2/directions/driving-car/geojson" && req.method === "POST") {
+    if (
+      p === "/openrouteservice/v2/directions/driving-car/geojson" &&
+      req.method === "POST"
+    ) {
       orsCalls.directions++;
       const { coordinates } = JSON.parse((await body(req)).toString());
       return json(res, 200, {
