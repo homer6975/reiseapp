@@ -1,5 +1,7 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 
@@ -48,6 +50,17 @@ export async function saveHousehold(
     .update(parsed.data)
     .eq("id", me.householdId);
   return error ? fail(SAVE_ERROR) : done();
+}
+
+// Kalender-Abo: neues Token macht den alten Link ungültig (SPEC §6.8).
+export async function renewIcsToken(): Promise<FormState> {
+  const me = await requireParent();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("household")
+    .update({ ics_token: randomBytes(24).toString("hex") })
+    .eq("id", me.householdId);
+  return error ? fail(SAVE_ERROR) : done("Neuer Link erzeugt.");
 }
 
 // --- Personen -----------------------------------------------------------------

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import {
   Car,
@@ -15,7 +16,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { requireParent } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { saveHousehold } from "@/server/actions/settings";
+import { CopyField } from "@/components/settings/copy-field";
+import { renewIcsToken, saveHousehold } from "@/server/actions/settings";
 
 export const metadata: Metadata = { title: "Einstellungen" };
 
@@ -57,9 +59,12 @@ export default async function SettingsPage() {
   const supabase = await createClient();
   const { data: household } = await supabase
     .from("household")
-    .select("name, state_code")
+    .select("name, state_code, ics_token")
     .eq("id", me.householdId)
     .single();
+  const feedUrl = household
+    ? `${await baseUrl()}/api/ics/${household.ics_token}.ics`
+    : null;
 
   return (
     <>
@@ -111,6 +116,44 @@ export default async function SettingsPage() {
           </p>
         </ActionForm>
       </Card>
+
+      {feedUrl && (
+        <Card className="space-y-3">
+          <h2 className="font-semibold">Kalender-Abo</h2>
+          <p className="text-sm text-muted-foreground">
+            Termine, Reisen und Plan-Einträge mit Uhrzeit als abonnierbarer
+            Kalender (ohne Beträge). Auf dem iPhone: Einstellungen › Kalender ›
+            Accounts › Account hinzufügen › Andere › Kalenderabo hinzufügen.
+          </p>
+          <CopyField label="Abo-Link" value={feedUrl} />
+          <a
+            href={feedUrl.replace(/^https?:/, "webcal:")}
+            className="inline-block text-sm underline"
+          >
+            Direkt im Kalender abonnieren
+          </a>
+          <ActionForm
+            action={renewIcsToken}
+            submitLabel="Neuen Link erzeugen"
+            submitVariant="outline"
+            confirm="Der alte Link funktioniert danach nicht mehr. Fortfahren?"
+            aria-label="Kalender-Abo"
+          />
+        </Card>
+      )}
     </>
   );
+}
+
+async function baseUrl() {
+  if (process.env.APP_BASE_URL)
+    return process.env.APP_BASE_URL.replace(/\/$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto =
+    h.get("x-forwarded-proto") ??
+    (host.startsWith("localhost") || host.startsWith("127.")
+      ? "http"
+      : "https");
+  return `${proto}://${host}`;
 }

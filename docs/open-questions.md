@@ -36,3 +36,6 @@
 | 2026-11-25 | openrouteservice und OpenFreeMap sind aus der Entwicklungsumgebung gesperrt; getestet gegen Fakes. Echter Test nach dem Eintragen von `ORS_API_KEY` in Vercel | M7 | |
 | 2026-11-25 | MapLibre GL in Version 5 statt 6: Version 6 lädt ihren Web-Worker als eigene Datei, das klappt mit dem Next-Bundler nicht ohne Zusatzaufwand | M7 | |
 | 2026-11-25 | Orte bekommen Koordinaten nur, wenn im Eintrag-Dialog ein Vorschlag der Ortssuche gewählt wird; bestehende Orte ohne Koordinaten stehen unter der Karte als Hinweis | M7, KA-03 | Annahme |
+| 2026-11-25 | ICS-Feed enthält Termine (ganztägig), Reisen außer Ideen (ganztägig, „Reise: …“) und Plan-Einträge mit Uhrzeit; Termine mit eigener Reise erscheinen nur als Reise. Keine Beträge, keine Urlaubsdaten | M7, §6.8 | Annahme |
+| 2026-11-25 | Abo-Link nutzt `APP_BASE_URL`, sonst den Host der Anfrage. In Vercel `APP_BASE_URL=https://familien-trips.vercel.app` setzen, damit der Link stabil ist | M7 | |
+| 2026-11-25 | Reise-PDF: Deckblatt, Tage mit Zeiten/Details/Buchungscodes/Orten, Ideen, Kontakte (Telefon, Links aus den Einträgen); Kostenblock nur für Eltern mit „mit Kosten“ | M7, RP-10 | Annahme |
