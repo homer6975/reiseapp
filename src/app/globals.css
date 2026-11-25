@@ -91,3 +91,12 @@
       sans-serif;
   }
 }
+
+/* Schraffur für Ferien im Jahresraster */
+.holiday-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary) 22%, transparent) 0 3px,
+    transparent 3px 7px
+  );
+}

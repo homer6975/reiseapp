@@ -17,6 +17,7 @@ import {
   vehicleSchema,
 } from "@/lib/schemas/settings";
 import { createClient } from "@/lib/supabase/server";
+import { importHolidays } from "@/server/holidays/import";
 import { testConnection } from "@/server/integrations/kdrive";
 
 // Alle Einstellungen: nur Eltern (requireParent) und zusätzlich RLS (Cookie-Session).
@@ -329,4 +330,27 @@ export async function invitePerson(
   return error
     ? fail("Die Mail konnte gerade nicht verschickt werden.")
     : ok(`Einladung an ${person.email} verschickt.`);
+}
+
+// --- Ferien und Feiertage -----------------------------------------------------
+
+export async function importHolidaysNow(): Promise<FormState> {
+  const me = await requireParent();
+  const supabase = await createClient();
+  const { data: household } = await supabase
+    .from("household")
+    .select("state_code")
+    .eq("id", me.householdId)
+    .single();
+  try {
+    const result = await importHolidays(household?.state_code ?? "DE-BW");
+    revalidatePath("/", "layout");
+    return ok(
+      `${result.schoolHolidays} Ferienzeiträume und ${result.publicHolidays} Feiertage aktualisiert.`,
+    );
+  } catch {
+    return fail(
+      "Der Ferien-Dienst ist gerade nicht erreichbar. Bitte später nochmal versuchen.",
+    );
+  }
 }
