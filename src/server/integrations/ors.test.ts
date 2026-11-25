@@ -47,7 +47,7 @@ describe("ors", () => {
       },
     ]);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toContain("https://api.openrouteservice.org/geocode/search?");
+    expect(url).toContain("https://api.heigit.org/pelias/v1/search?");
     expect(url).toContain("text=Lazise");
     expect(url).toContain("boundary.country=IT");
     expect(init.headers.Authorization).toBe("k");
@@ -78,7 +78,7 @@ describe("ors", () => {
     expect(route.duration_s).toBe(15000);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe(
-      "https://api.openrouteservice.org/v2/directions/driving-car/geojson",
+      "https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson",
     );
     expect(JSON.parse(init.body)).toEqual({
       coordinates: [
@@ -107,14 +107,59 @@ describe("ors", () => {
     ).rejects.toMatchObject({
       code: "no_route",
     });
-    fetchMock.mockResolvedValueOnce(json({ error: "Access disallowed" }, 403));
+    // Ortssuche: erst Pelias, dann Photon; scheitern beide, zählt der Pelias-Fehler.
+    fetchMock
+      .mockResolvedValueOnce(json({ error: "Access disallowed" }, 403))
+      .mockResolvedValueOnce(json({}, 503));
     await expect(geocode("Lazise")).rejects.toMatchObject({
       code: "unauthorized",
     });
-    fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"));
+    fetchMock
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockRejectedValueOnce(new TypeError("fetch failed"));
     await expect(geocode("Lazise")).rejects.toMatchObject({ code: "failed" });
     vi.stubEnv("ORS_API_KEY", "");
+    fetchMock.mockResolvedValueOnce(json({}, 503));
     await expect(geocode("x")).rejects.toBeInstanceOf(OrsError);
+  });
+
+  it("falls back to Photon when Pelias is gone", async () => {
+    fetchMock.mockResolvedValueOnce(json({}, 410)).mockResolvedValueOnce(
+      json({
+        features: [
+          {
+            geometry: { coordinates: [4.776, 51.589] },
+            properties: {
+              osm_type: "R",
+              osm_id: 123,
+              name: "Breda",
+              state: "Nordbrabant",
+              country: "Niederlande",
+              countrycode: "NL",
+            },
+          },
+          {
+            geometry: { coordinates: [8.0, 49.0] },
+            properties: { name: "Breda", countrycode: "DE" },
+          },
+        ],
+      }),
+    );
+    const results = await geocode("breda", { country: "NL" });
+    expect(results).toEqual([
+      {
+        id: "osm:R123",
+        label: "Breda, Nordbrabant, Niederlande",
+        name: "Breda",
+        lat: 51.589,
+        lon: 4.776,
+        countryCode: "NL",
+      },
+    ]);
+    const [url, init] = fetchMock.mock.calls[1];
+    expect(url).toContain("https://photon.komoot.io/api/?");
+    expect(url).toContain("q=breda");
+    expect(init.headers.Authorization).toBeUndefined();
   });
 
   it("hashes profile and rounded coordinates", () => {

@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 
 // openrouteservice (SPEC §6.7): Routing und Geocoding, nur serverseitig.
 // Gratis-Plan: 2.000 Anfragen/Tag, 40/min → Routen immer zuerst aus route_cache.
+// Seit 24.11.2026 nur noch unter api.heigit.org/<dienst>/<version>/ (api.openrouteservice.org
+// ist abgeschaltet). Fällt die Ortssuche dort aus, springt Photon (komoot, ohne Schlüssel) ein.
 
 export type LonLat = [number, number];
 
@@ -54,10 +56,7 @@ export function orsMessage(error: unknown): string {
 }
 
 const baseUrl = () =>
-  (process.env.ORS_API_URL ?? "https://api.openrouteservice.org").replace(
-    /\/$/,
-    "",
-  );
+  (process.env.ORS_API_URL || "https://api.heigit.org").replace(/\/$/, "");
 
 function apiKey() {
   const key = process.env.ORS_API_KEY;
@@ -118,13 +117,29 @@ export async function geocode(
   text: string,
   opts: { country?: string | null; size?: number } = {},
 ): Promise<GeocodeResult[]> {
+  try {
+    return await peliasSearch(text, opts);
+  } catch (error) {
+    // Pelias weg oder Schlüssel abgelehnt: Ersatz versuchen, sonst ursprünglichen Fehler melden.
+    try {
+      return await photonSearch(text, opts);
+    } catch {
+      throw error;
+    }
+  }
+}
+
+async function peliasSearch(
+  text: string,
+  opts: { country?: string | null; size?: number } = {},
+): Promise<GeocodeResult[]> {
   const params = new URLSearchParams({
     text,
     size: String(opts.size ?? 5),
     lang: "de",
   });
   if (opts.country) params.set("boundary.country", opts.country);
-  const data = (await call(`/geocode/search?${params}`)) as {
+  const data = (await call(`/pelias/v1/search?${params}`)) as {
     features?: PeliasFeature[];
   };
   return (data.features ?? []).flatMap((f) => {
@@ -147,15 +162,100 @@ export async function geocode(
   });
 }
 
+type PhotonFeature = {
+  geometry?: { coordinates?: [number, number] };
+  properties?: {
+    osm_type?: string;
+    osm_id?: number;
+    name?: string;
+    street?: string;
+    housenumber?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    countrycode?: string;
+  };
+};
+
+const photonUrl = () =>
+  (process.env.PHOTON_API_URL || "https://photon.komoot.io").replace(/\/$/, "");
+
+/** Ersatz-Ortssuche über Photon (OSM-Daten, ohne Schlüssel, Fair-Use). Nur der Suchtext geht raus. */
+async function photonSearch(
+  text: string,
+  opts: { country?: string | null; size?: number },
+): Promise<GeocodeResult[]> {
+  const size = opts.size ?? 5;
+  const params = new URLSearchParams({
+    q: text,
+    // Länderfilter macht Photon nicht selbst: mehr holen, dann filtern.
+    limit: String(opts.country ? size * 3 : size),
+    lang: "de",
+  });
+  let res: Response;
+  try {
+    res = await fetch(`${photonUrl()}/api/?${params}`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "familien-trips/1.0 (private family app)",
+      },
+      signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
+    });
+  } catch (error) {
+    console.error("[photon] /api: request failed", (error as Error).name);
+    throw new OrsError("failed", "network");
+  }
+  if (!res.ok) {
+    console.error(`[photon] /api: HTTP ${res.status}`);
+    throw new OrsError(res.status === 429 ? "rate_limited" : "failed");
+  }
+  const data = (await res.json()) as { features?: PhotonFeature[] };
+  const wanted = opts.country?.toUpperCase();
+  return (data.features ?? [])
+    .flatMap((f) => {
+      const [lon, lat] = f.geometry?.coordinates ?? [];
+      const p = f.properties ?? {};
+      if (typeof lat !== "number" || typeof lon !== "number") return [];
+      const cc =
+        p.countrycode && /^[A-Za-z]{2}$/.test(p.countrycode)
+          ? p.countrycode.toUpperCase()
+          : null;
+      if (wanted && cc !== wanted) return [];
+      const street = [p.street, p.housenumber].filter(Boolean).join(" ");
+      const name = p.name ?? (street || p.city || text);
+      const parts = [name, street, p.city, p.state, p.country].filter(
+        (x): x is string => Boolean(x),
+      );
+      return [
+        {
+          id:
+            p.osm_type && p.osm_id
+              ? `osm:${p.osm_type}${p.osm_id}`
+              : `${lat},${lon}`,
+          label: [...new Set(parts)].join(", "),
+          name,
+          lat,
+          lon,
+          countryCode: cc,
+        },
+      ];
+    })
+    .slice(0, size);
+}
+
 /** Autoroute durch die Punkte in Reihenfolge (2–50 Punkte, Gratis-Limit). */
 export async function directions(
   coordinates: LonLat[],
   profile = "driving-car",
 ): Promise<Route> {
-  const data = (await call(`/v2/directions/${profile}/geojson`, {
-    method: "POST",
-    body: JSON.stringify({ coordinates }),
-  })) as {
+  const data = (await call(
+    `/openrouteservice/v2/directions/${profile}/geojson`,
+    {
+      method: "POST",
+      body: JSON.stringify({ coordinates }),
+    },
+  )) as {
     features?: {
       geometry?: Route["geometry"];
       properties?: { summary?: { distance?: number; duration?: number } };

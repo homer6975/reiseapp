@@ -243,7 +243,7 @@ getDownloadUrl(fileId): Promise<string>   // für Anzeige/Download
 
 - MapLibre GL, Vektor-Kacheln eines freien Anbieters (Vorschlag OpenFreeMap ohne Key; Alternative MapTiler mit Key – beim Setup entscheiden, in `docs/open-questions.md` vermerken). OSM-Attribution anzeigen.
 - Marker für alle `day_item` mit Ort, Farbe je Tag, Filter Tag/alle. Klick → Popup mit Titel, Zeit, „In Google Maps öffnen“ / „In Apple Karten öffnen“ (URL-Schemata).
-- Route: openrouteservice `POST https://api.openrouteservice.org/v2/directions/driving-car/geojson` mit den Orten eines Tages in Planreihenfolge (Flüge ausgenommen, Flüge als Großkreisbogen = v2). Ergebnis in `route_cache` (Hash aus Profil + Koordinaten). Anzeige Distanz (km) und Fahrzeit. Limits Gratis-Plan beachten (2.000/Tag, 40/min) → Cache immer zuerst.
+- Route: openrouteservice `POST https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson` (alter Host api.openrouteservice.org seit 24.11.2026 abgeschaltet) mit den Orten eines Tages in Planreihenfolge (Flüge ausgenommen, Flüge als Großkreisbogen = v2). Ergebnis in `route_cache` (Hash aus Profil + Koordinaten). Anzeige Distanz (km) und Fahrzeit. Limits Gratis-Plan beachten (2.000/Tag, 40/min) → Cache immer zuerst.
 - Geocoding (KA-03): ORS `GET /geocode/search?text=…&boundary.country=…` über `api/geocode` (debounced Autocomplete, Ergebnis → `place`).
 - Attribution openrouteservice im Kartenfuß (Nutzungsbedingung).
 
