@@ -19,7 +19,7 @@ test("Elternteil pflegt Schulen, Fahrzeuge und Packvorlagen", async ({
   await dayForm.getByLabel("Bezeichnung").fill("Brückentag");
   await dayForm.getByLabel("Von").fill("2027-05-07");
   await dayForm.getByRole("button", { name: "Ferientag eintragen" }).click();
-  await expect(page.getByText("Fr., 07.05.2027")).toBeVisible();
+  await expect(page.getByText("Fr., 07.05.2027").first()).toBeVisible();
 
   // Fahrzeug
   await page.goto("/einstellungen/fahrzeuge");

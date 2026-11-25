@@ -54,7 +54,8 @@ export default async function KdrivePage() {
           <p className="text-sm text-muted-foreground">
             Beide Zahlen stehen in der Adresszeile, wenn du den Ordner in kDrive
             öffnest: kdrive.infomaniak.com/app/drive/<strong>kDrive-ID</strong>
-            /files/<strong>Ordner-ID</strong>
+            /files/<strong>Ordner-ID</strong> (oder …/redirect/
+            <strong>Ordner-ID</strong>)
           </p>
         </ActionForm>
       </Card>

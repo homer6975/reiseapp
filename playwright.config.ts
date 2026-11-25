@@ -38,9 +38,21 @@ export default defineConfig({
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
-    : {
-        command: `pnpm start --port ${port}`,
-        port,
-        reuseExistingServer: !process.env.CI,
-      },
+    : [
+        {
+          // Fake-kDrive für die Dokumente-Tests (M4)
+          command: "node e2e/fake-kdrive.mjs",
+          port: 3199,
+          reuseExistingServer: !process.env.CI,
+        },
+        {
+          command: `pnpm start --port ${port}`,
+          port,
+          reuseExistingServer: !process.env.CI,
+          env: {
+            KDRIVE_API_URL: "http://127.0.0.1:3199",
+            KDRIVE_TOKEN: "test-token",
+          },
+        },
+      ],
 });

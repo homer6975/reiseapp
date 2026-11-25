@@ -10,6 +10,7 @@ export function TripTabs({ tripId }: { tripId: string }) {
   const pathname = usePathname();
   const tabs = [
     { href: `/reisen/${tripId}/plan`, label: "Plan" },
+    { href: `/reisen/${tripId}/dokumente`, label: "Dokumente" },
     { href: `/reisen/${tripId}`, label: "Details" },
   ];
   return (
