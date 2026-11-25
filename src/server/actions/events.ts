@@ -14,6 +14,7 @@ import {
 } from "@/lib/schemas/event";
 import { createClient } from "@/lib/supabase/server";
 import { ensureTripFolder } from "@/server/documents/folders";
+import { generatePackingList } from "@/server/packing/generate";
 import { calendarFor, loadHolidays, loadPersons } from "@/server/planner/data";
 
 const SAVE_ERROR = "Speichern hat nicht geklappt. Bitte nochmal versuchen.";
@@ -281,6 +282,7 @@ export async function createTripFromEvent(
     .eq("id", id.data);
   if (linkError) return fail(SAVE_ERROR);
   await ensureTripFolder(supabase, me.householdId, trip.id);
+  await generatePackingList(supabase, me.householdId, trip.id);
 
   refresh();
   return ok("Reise angelegt.");

@@ -2,6 +2,7 @@ import { Field } from "@/components/forms/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { TRIP_MODES } from "@/lib/planner-labels";
+import { LABELS } from "@/lib/schemas/packing-template";
 import { TRIP_STATUS } from "@/lib/trip-labels";
 import type { PlannerPerson } from "@/server/planner/data";
 import type { TripDetail } from "@/server/trips/data";
@@ -73,6 +74,27 @@ export function TripFields({
           </NativeSelect>
         </Field>
       </div>
+      <ChoiceGroup
+        legend="Aktivitäten"
+        name="activities"
+        options={LABELS.activities}
+        selected={trip?.activities ?? []}
+      />
+      <ChoiceGroup
+        legend="Klima"
+        name="climate"
+        options={LABELS.climate}
+        selected={trip?.climate ?? []}
+      />
+      <label className="flex min-h-9 items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="international"
+          defaultChecked={trip?.international ?? false}
+          className="size-5"
+        />
+        Auslandsreise (Reisepass, Adapter)
+      </label>
       <fieldset className="space-y-1.5">
         <legend className="text-sm font-medium">Wer ist dabei?</legend>
         <ul className="space-y-1">
@@ -117,5 +139,41 @@ export function TripFields({
         />
       </Field>
     </div>
+  );
+}
+
+// Mehrfachauswahl für die Packlisten-Regeln (SPEC §6.5).
+function ChoiceGroup({
+  legend,
+  name,
+  options,
+  selected,
+}: {
+  legend: string;
+  name: string;
+  options: Record<string, string>;
+  selected: readonly string[];
+}) {
+  return (
+    <fieldset className="space-y-1.5">
+      <legend className="text-sm font-medium">{legend}</legend>
+      <div className="flex flex-wrap gap-x-4">
+        {Object.entries(options).map(([value, label]) => (
+          <label
+            key={value}
+            className="flex min-h-9 items-center gap-2 text-sm"
+          >
+            <input
+              type="checkbox"
+              name={name}
+              value={value}
+              defaultChecked={selected.includes(value)}
+              className="size-5"
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }

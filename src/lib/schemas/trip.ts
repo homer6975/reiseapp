@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ACTIVITIES, CLIMATES } from "@/lib/schemas/packing-template";
+
 const emptyToNull = (v: unknown) =>
   typeof v === "string" && v.trim() === "" ? null : v;
 const isoDate = z.iso.date("Datum ungültig.");
@@ -16,6 +18,9 @@ export const tripSchema = z
       error: "Status wählen.",
     }),
     notes: z.preprocess(emptyToNull, z.string().trim().max(2000).nullable()),
+    activities: z.array(z.enum(ACTIVITIES)),
+    climate: z.array(z.enum(CLIMATES)),
+    international: z.boolean(),
     person_ids: z.array(z.uuid()),
     planner_ids: z.array(z.uuid()),
   })
@@ -38,6 +43,9 @@ export function parseTripForm(formData: FormData) {
     mode: formData.get("mode"),
     status: formData.get("status"),
     notes: formData.get("notes") ?? "",
+    activities: formData.getAll("activities"),
+    climate: formData.getAll("climate"),
+    international: formData.get("international") === "on",
     person_ids: formData.getAll("person_ids"),
     planner_ids: formData.getAll("planner_ids"),
   });
