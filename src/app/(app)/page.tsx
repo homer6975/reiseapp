@@ -3,16 +3,24 @@ import Link from "next/link";
 import { ConflictList } from "@/components/jahr/conflict-list";
 import { getMe } from "@/lib/auth";
 import { findConflicts } from "@/lib/conflicts";
-import { addDays, todayInBerlin } from "@/lib/dates";
-import { formatDate } from "@/lib/format";
+import { addDays, daysBetween, todayInBerlin } from "@/lib/dates";
+import { formatDate, formatDateRange } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { loadEvents, loadPersons } from "@/server/planner/data";
+import { loadTrips } from "@/server/trips/data";
+import { Card } from "@/components/ui/card";
 
 export default async function DashboardPage() {
   const me = await getMe();
   const today = todayInBerlin();
   const supabase = await createClient();
-  const persons = await loadPersons(supabase, me.householdId);
+  const [persons, trips] = await Promise.all([
+    loadPersons(supabase, me.householdId),
+    loadTrips(supabase, me.householdId),
+  ]);
+  const nextTrip = trips.find(
+    (t) => t.status !== "idea" && t.status !== "done" && t.end_date >= today,
+  );
   // Nächste 12 Monate reichen für Konflikte und Fristen.
   const events = await loadEvents(
     supabase,
@@ -46,6 +54,19 @@ export default async function DashboardPage() {
   return (
     <section className="space-y-6">
       <h1 className="text-2xl font-semibold">Hallo {me.displayName}!</h1>
+
+      {nextTrip && (
+        <Link href={`/reisen/${nextTrip.id}/plan`} className="block">
+          <Card className="space-y-1 hover:bg-accent">
+            <p className="text-sm text-muted-foreground">Nächste Reise</p>
+            <p className="text-lg font-semibold">{nextTrip.title}</p>
+            <p className="text-sm">
+              {formatDateRange(nextTrip.start_date, nextTrip.end_date)} ·{" "}
+              {countdown(nextTrip.start_date, nextTrip.end_date, today)}
+            </p>
+          </Card>
+        </Link>
+      )}
 
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">Offene Konflikte</h2>
@@ -85,4 +106,12 @@ export default async function DashboardPage() {
       </p>
     </section>
   );
+}
+
+function countdown(start: string, end: string, today: string) {
+  if (today < start) {
+    const n = daysBetween(today, start);
+    return n === 1 ? "morgen" : `in ${n} Tagen`;
+  }
+  return `heute Tag ${daysBetween(start, today) + 1} von ${daysBetween(start, end) + 1}`;
 }

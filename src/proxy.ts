@@ -9,6 +9,7 @@ const PARENT_ONLY = [
   /^\/einstellungen(\/|$)/,
   /^\/reisen\/[^/]+\/kosten(\/|$)/,
   /^\/jahr\/termin\/neu$/,
+  /^\/reisen\/neu$/,
 ];
 
 function isPublic(pathname: string) {

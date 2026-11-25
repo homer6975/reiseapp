@@ -233,7 +233,10 @@ export default async function EventPage({
         {trip ? (
           <p>
             Verknüpft mit{" "}
-            <Link href="/reisen" className="underline underline-offset-4">
+            <Link
+              href={`/reisen/${event.tripId}`}
+              className="underline underline-offset-4"
+            >
               {trip.title}
             </Link>{" "}
             ({formatDateRange(trip.start_date, trip.end_date)})

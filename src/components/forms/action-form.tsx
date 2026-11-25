@@ -15,6 +15,7 @@ type Props = {
   confirm?: string;
   className?: string;
   "aria-label"?: string;
+  onSuccess?: () => void;
 };
 
 // Formular für Server Actions mit Fehlermeldung und Lade-Zustand.
@@ -27,12 +28,18 @@ export function ActionForm({
   confirm,
   className,
   "aria-label": ariaLabel,
+  onSuccess,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, null);
   const ref = useRef<HTMLFormElement>(null);
+  const onSuccessRef = useRef(onSuccess);
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  });
 
   useEffect(() => {
     if (state?.ok && resetOnSuccess) ref.current?.reset();
+    if (state?.ok) onSuccessRef.current?.();
   }, [state, resetOnSuccess]);
 
   return (
