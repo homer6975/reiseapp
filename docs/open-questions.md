@@ -22,3 +22,5 @@
 | 2026-11-25 | „Verschieben nach …“ ist ein flaches Menü (Tage direkt gelistet) statt Untermenü, weil Untermenüs auf dem iPhone schlecht bedienbar sind | M3, NF-11 | |
 | 2026-11-25 | kDrive-Endpunkte konnten nicht live geprüft werden (developer.infomaniak.com und api.infomaniak.com sind aus der Entwicklungsumgebung gesperrt). Abgeglichen mit der rclone-kDrive-Implementierung und einem zweiten Open-Source-Client; Test gegen echtes kDrive per „Verbindung testen“ und erstem Upload | M4 | |
 | 2026-11-25 | Uploads über die App höchstens 4 MB (Vercel-Funktionen nehmen max. 4,5 MB an). Größere Dateien direkt in kDrive in den Reiseordner legen und im Dokumente-Tab zuordnen | M4 | Annahme |
+| 2026-11-25 | Zahler nur Eltern; sechs Kategorien, Camping unter Unterkunft | M5 | bestätigt (Markus, 25.11.) |
+| 2026-11-25 | Frankfurter (api.frankfurter.dev) ist aus der Entwicklungsumgebung gesperrt; getestet gegen einen Fake, echter Test mit der ersten Fremdwährungs-Ausgabe | M5 | |
