@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Printer } from "lucide-react";
 
 import { ActionForm } from "@/components/forms/action-form";
 import { TripFields } from "@/components/reisen/trip-fields";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getMe } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -53,6 +55,32 @@ export default async function TripDetailsPage({
             {trip.notes}
           </p>
         )}
+      </Card>
+
+      <Card className="space-y-2">
+        <h2 className="font-semibold">Drucken</h2>
+        <form
+          action={`/reisen/${trip.id}/druck`}
+          method="get"
+          target="_blank"
+          aria-label="Reise drucken"
+          className="flex flex-wrap items-center gap-3"
+        >
+          {me.isParent && (
+            <label className="flex min-h-9 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="kosten"
+                value="1"
+                className="size-5"
+              />
+              mit Kosten
+            </label>
+          )}
+          <Button type="submit" variant="outline">
+            <Printer aria-hidden /> PDF öffnen
+          </Button>
+        </form>
       </Card>
 
       {me.isParent && (
