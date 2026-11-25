@@ -8,6 +8,7 @@ const PUBLIC_PATHS = ["/login", "/auth/", "/api/cron/", "/api/ics/"];
 const PARENT_ONLY = [
   /^\/einstellungen(\/|$)/,
   /^\/reisen\/[^/]+\/kosten(\/|$)/,
+  /^\/jahr\/termin\/neu$/,
 ];
 
 function isPublic(pathname: string) {

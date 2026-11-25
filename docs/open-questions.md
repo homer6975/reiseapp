@@ -11,3 +11,8 @@
 | 2026-11-24 | Über welchen SMTP-Server sollen die Anmelde-Mails in der Cloud laufen? Supabases eingebauter Mailversand schickt nur an Mitglieder des Supabase-Teams und ist stark limitiert. | M1, Supabase Auth → SMTP | |
 | 2026-11-24 | Bewegliche Ferientage per ICS-Upload (JP-02) | M1 baut nur die manuelle Eingabe; ICS-Upload zusammen mit dem Ferienimport in M2 | |
 | 2026-11-24 | Login-Mail enthält Link **und** 6-stelligen Code, weil eine iPhone-PWA Links aus Mails in Safari statt in der App öffnet | M1, Abweichung von „nur Magic Link“ | |
+| 2026-11-25 | ICS-Upload für bewegliche Ferientage (JP-02) ist auch in M2 noch nicht gebaut; reicht die manuelle Eingabe, oder soll der Upload nachgezogen werden? | M2 | |
+| 2026-11-25 | Termin per Ziehen im Jahresraster anlegen ist nicht gebaut; stattdessen Button „Termin“ (und `?start=`). Reicht das? | M2, JP-03 | |
+| 2026-11-25 | Standardansicht des Jahresplaners ist das Schuljahr (Aug–Jul), umschaltbar auf Kalenderjahr | M2 | Annahme |
+| 2026-11-25 | „Termin → Reise“ legt nur Reise und Teilnehmende an; kDrive-Ordner (M4) und Packliste (M6) folgen in den Meilensteinen | M2, JP-09 | |
+| 2026-11-25 | Migration 0003 (Unique-Key für den Ferien-Upsert) muss in der Cloud-DB eingespielt werden, sonst schlägt der Import fehl | M2 | |

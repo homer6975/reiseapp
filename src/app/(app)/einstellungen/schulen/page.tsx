@@ -6,12 +6,13 @@ import { SettingsHeader } from "@/components/settings/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { requireParent } from "@/lib/auth";
-import { formatDateRange } from "@/lib/format";
+import { formatDate, formatDateRange } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import {
   addSchoolDayOff,
   deleteSchool,
   deleteSchoolDayOff,
+  importHolidaysNow,
   saveSchool,
 } from "@/server/actions/settings";
 
@@ -20,11 +21,25 @@ export const metadata: Metadata = { title: "Schulen" };
 export default async function SchoolsPage() {
   const me = await requireParent();
   const supabase = await createClient();
-  const { data: schools } = await supabase
-    .from("school")
-    .select("id, name, holiday_period(id, name, start_date, end_date)")
-    .eq("household_id", me.householdId)
-    .order("name");
+  const [{ data: stateHolidays }, { data: schools }] = await Promise.all([
+    supabase
+      .from("holiday_period")
+      .select("kind, end_date")
+      .is("school_id", null)
+      .order("end_date", { ascending: false }),
+    supabase
+      .from("school")
+      .select("id, name, holiday_period(id, name, start_date, end_date)")
+      .eq("household_id", me.householdId)
+      .order("name"),
+  ]);
+  const schoolHolidayCount = (stateHolidays ?? []).filter(
+    (h) => h.kind === "school_holiday",
+  ).length;
+  const publicHolidayCount = (stateHolidays ?? []).filter(
+    (h) => h.kind === "public_holiday",
+  ).length;
+  const knownUntil = stateHolidays?.[0]?.end_date;
 
   return (
     <>
@@ -32,6 +47,20 @@ export default async function SchoolsPage() {
         title="Schulen"
         description="Bewegliche Ferientage gelten nur für die Kinder dieser Schule. Schulferien und Feiertage für Baden-Württemberg kommen automatisch."
       />
+
+      <Card className="space-y-3">
+        <h2 className="font-semibold">Schulferien und Feiertage</h2>
+        <p className="text-sm text-muted-foreground">
+          {schoolHolidayCount > 0 || publicHolidayCount > 0
+            ? `${schoolHolidayCount} Ferienzeiträume und ${publicHolidayCount} Feiertage bekannt${knownUntil ? `, bis ${formatDate(knownUntil)}` : ""}. Wird jeden Monat automatisch aktualisiert.`
+            : "Noch keine Ferien geladen. Sie werden jeden Monat automatisch aktualisiert."}
+        </p>
+        <ActionForm
+          action={importHolidaysNow}
+          submitLabel="Jetzt aktualisieren"
+          submitVariant="outline"
+        />
+      </Card>
 
       <ul className="space-y-3">
         {(schools ?? []).map((school) => {
