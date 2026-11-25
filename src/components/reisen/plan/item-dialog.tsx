@@ -19,6 +19,8 @@ import { ITEM_KINDS, TRANSPORT_MODES } from "@/lib/trip-labels";
 import { deleteDayItem, saveDayItem } from "@/server/actions/day-items";
 import type { PlanItem } from "@/server/trips/data";
 
+import { PlaceInput } from "./place-input";
+
 export type EditTarget = { item?: PlanItem; day: string | null } | null;
 
 const ZONES =
@@ -353,10 +355,10 @@ function ItemForm({
           )}
           {specific}
           <Field label="Ort" htmlFor="f-place">
-            <Input
+            <PlaceInput
               id="f-place"
-              name="place_name"
-              defaultValue={item?.placeName ?? ""}
+              defaultName={item?.placeName ?? ""}
+              defaultGeo={item?.place ?? null}
             />
           </Field>
           <Field label="Buchungsnummer" htmlFor="f-booking">

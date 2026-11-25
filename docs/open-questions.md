@@ -32,3 +32,7 @@
 | 2026-11-25 | M7 kommt in drei PRs: Abstimmungen, Karte, Export (PDF + ICS) | M7 | Annahme, Markus informiert |
 | 2026-11-25 | Abstimmungs-Optionen sind Text, optional mit Tag; Zeitraum-Optionen gibt es noch nicht. Ist „Gewinner in den Plan“ angehakt, wird die Gewinner-Option als Aktivität am gewählten Tag (sonst Ideen-Ablage) angelegt | M7, §6.6 | Annahme |
 | 2026-11-25 | Migration 0005: Eltern dürfen ins `activity_log` schreiben (0001 erlaubte nur Lesen) | M7 | |
+| 2026-11-25 | Kartenstil-URL heißt `MAP_STYLE_URL` (Server, zur Laufzeit) statt `NEXT_PUBLIC_MAP_STYLE_URL`; leer = OpenFreeMap „liberty“. `NEXT_PUBLIC_MAP_STYLE_URL` wird weiter gelesen | M7, §8.1 | Annahme |
+| 2026-11-25 | openrouteservice und OpenFreeMap sind aus der Entwicklungsumgebung gesperrt; getestet gegen Fakes. Echter Test nach dem Eintragen von `ORS_API_KEY` in Vercel | M7 | |
+| 2026-11-25 | MapLibre GL in Version 5 statt 6: Version 6 lädt ihren Web-Worker als eigene Datei, das klappt mit dem Next-Bundler nicht ohne Zusatzaufwand | M7 | |
+| 2026-11-25 | Orte bekommen Koordinaten nur, wenn im Eintrag-Dialog ein Vorschlag der Ortssuche gewählt wird; bestehende Orte ohne Koordinaten stehen unter der Karte als Hinweis | M7, KA-03 | Annahme |

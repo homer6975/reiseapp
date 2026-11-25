@@ -7,9 +7,17 @@ const files = new Map([
 ]);
 const contents = new Map();
 let nextId = 1000;
+const orsCalls = { geocode: 0, directions: 0 };
+const PLACES = [
+  { gid: "osm:lazise", name: "Camping Lazise", lat: 45.5053, lon: 10.7323 },
+  { gid: "osm:gardaland", name: "Gardaland", lat: 45.4553, lon: 10.7135 },
+];
 
 const json = (res, status, body) => {
-  res.writeHead(status, { "Content-Type": "application/json" });
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+  });
   res.end(JSON.stringify(body));
 };
 const ok = (res, data, extra = {}) =>
@@ -28,6 +36,53 @@ createServer(async (req, res) => {
   const p = url.pathname;
   let m;
   if (p === "/__files") return ok(res, [...files.values()]);
+  // Kartenstil ohne Kacheln (OpenFreeMap ist aus der Testumgebung nicht erreichbar)
+  if (p === "/style.json")
+    return json(res, 200, {
+      version: 8,
+      sources: {},
+      layers: [
+        { id: "bg", type: "background", paint: { "background-color": "#dde" } },
+      ],
+    });
+  // Fake-openrouteservice (Geocoding + Directions)
+  if (p === "/__ors_calls") return json(res, 200, orsCalls);
+  if (p.startsWith("/geocode/") || p.startsWith("/v2/directions/")) {
+    if (req.headers.authorization !== "test-ors-key")
+      return json(res, 403, {
+        error: "Access to this API has been disallowed",
+      });
+    if (p === "/geocode/search") {
+      orsCalls.geocode++;
+      const text = (url.searchParams.get("text") ?? "").toLowerCase();
+      const hits = PLACES.filter((pl) => pl.name.toLowerCase().includes(text));
+      return json(res, 200, {
+        features: hits.map((pl) => ({
+          geometry: { type: "Point", coordinates: [pl.lon, pl.lat] },
+          properties: {
+            gid: pl.gid,
+            name: pl.name,
+            label: `${pl.name}, Italien`,
+            country_code: "IT",
+          },
+        })),
+      });
+    }
+    if (p === "/v2/directions/driving-car/geojson" && req.method === "POST") {
+      orsCalls.directions++;
+      const { coordinates } = JSON.parse((await body(req)).toString());
+      return json(res, 200, {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: { type: "LineString", coordinates },
+            properties: { summary: { distance: 12345.6, duration: 1500 } },
+          },
+        ],
+      });
+    }
+  }
   // Fake-Frankfurter (EZB-Kurse): fester Kurs je Datum, „latest“ für Zukunftsdaten
   if ((m = p.match(/^\/v1\/(latest|\d{4}-\d{2}-\d{2})$/))) {
     const from = url.searchParams.get("from");

@@ -32,3 +32,16 @@ export function supabaseServiceRoleKey(): string {
 export function cronSecret(): string {
   return required("CRON_SECRET", process.env.CRON_SECRET);
 }
+
+// Kartenstil (SPEC §6.7): OpenFreeMap ohne Schlüssel (Entscheidung Markus, 25.11.).
+// Zur Laufzeit gelesen (nicht NEXT_PUBLIC_), damit Tests einen lokalen Stil setzen können.
+export const DEFAULT_MAP_STYLE_URL =
+  "https://tiles.openfreemap.org/styles/liberty";
+
+export function mapStyleUrl(): string {
+  return (
+    process.env.MAP_STYLE_URL ||
+    process.env.NEXT_PUBLIC_MAP_STYLE_URL ||
+    DEFAULT_MAP_STYLE_URL
+  );
+}

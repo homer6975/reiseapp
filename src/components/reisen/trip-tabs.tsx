@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-// Reiter innerhalb einer Reise; die Karte folgt mit M7.
+// Reiter innerhalb einer Reise.
 export function TripTabs({
   tripId,
   isParent,
@@ -16,6 +16,7 @@ export function TripTabs({
   const pathname = usePathname();
   const tabs = [
     { href: `/reisen/${tripId}/plan`, label: "Plan" },
+    { href: `/reisen/${tripId}/karte`, label: "Karte" },
     { href: `/reisen/${tripId}/packliste`, label: "Packliste" },
     { href: `/reisen/${tripId}/abstimmungen`, label: "Abstimmungen" },
     { href: `/reisen/${tripId}/dokumente`, label: "Dokumente" },
