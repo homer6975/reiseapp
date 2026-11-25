@@ -24,3 +24,7 @@
 | 2026-11-25 | Uploads über die App höchstens 4 MB (Vercel-Funktionen nehmen max. 4,5 MB an). Größere Dateien direkt in kDrive in den Reiseordner legen und im Dokumente-Tab zuordnen | M4 | Annahme |
 | 2026-11-25 | Zahler nur Eltern; sechs Kategorien, Camping unter Unterkunft | M5 | bestätigt (Markus, 25.11.) |
 | 2026-11-25 | Frankfurter (api.frankfurter.dev) ist aus der Entwicklungsumgebung gesperrt; getestet gegen einen Fake, echter Test mit der ersten Fremdwährungs-Ausgabe | M5 | |
+| 2026-11-25 | Woran erkennt die App eine Auslandsreise (Reisepass, Adapter)? | M6, `rules.international` | Häkchen „Auslandsreise“ an der Reise (Markus, 25.11.) |
+| 2026-11-25 | Welche Vorlagen gelten bei Reiseart „Gemischt“? | M6 | Auto + Flug, ohne Wohnwagen-Checkliste (Markus, 25.11.) |
+| 2026-11-25 | „Neu berechnen“ ergänzt fehlende Einträge und passt bei noch nicht abgehakten Vorlagen-Einträgen die Menge an (z. B. Trikots nach neuen Spieltagen); gelöscht wird nichts | M6 | Annahme |
+| 2026-11-25 | Packliste wird beim Anlegen der Reise (auch aus einem Termin) automatisch erzeugt; danach nur per „Neu berechnen“ | M6 | Annahme |

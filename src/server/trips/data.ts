@@ -17,6 +17,9 @@ export type TripSummary = {
 
 export type TripDetail = TripSummary & {
   notes: string | null;
+  activities: string[];
+  climate: string[];
+  international: boolean;
   members: { personId: string; role: "planner" | "traveler" }[];
 };
 
@@ -58,7 +61,9 @@ export async function loadTrip(
 ): Promise<TripDetail | null> {
   const { data } = await supabase
     .from("trip")
-    .select(`${TRIP_FIELDS}, notes, trip_member(person_id, role)`)
+    .select(
+      `${TRIP_FIELDS}, notes, activities, climate, international, trip_member(person_id, role)`,
+    )
     .eq("household_id", householdId)
     .eq("id", id)
     .maybeSingle();

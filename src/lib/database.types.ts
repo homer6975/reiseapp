@@ -1121,12 +1121,15 @@ export type Database = {
       };
       trip: {
         Row: {
+          activities: string[];
           caravan_id: string | null;
+          climate: string[];
           created_at: string;
           created_by: string | null;
           end_date: string;
           household_id: string;
           id: string;
+          international: boolean;
           kdrive_folder_id: string | null;
           mode: Database["public"]["Enums"]["trip_mode"];
           notes: string | null;
@@ -1138,12 +1141,15 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          activities?: string[];
           caravan_id?: string | null;
+          climate?: string[];
           created_at?: string;
           created_by?: string | null;
           end_date: string;
           household_id: string;
           id?: string;
+          international?: boolean;
           kdrive_folder_id?: string | null;
           mode?: Database["public"]["Enums"]["trip_mode"];
           notes?: string | null;
@@ -1154,12 +1160,15 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          activities?: string[];
           caravan_id?: string | null;
+          climate?: string[];
           created_at?: string;
           created_by?: string | null;
           end_date?: string;
           household_id?: string;
           id?: string;
+          international?: boolean;
           kdrive_folder_id?: string | null;
           mode?: Database["public"]["Enums"]["trip_mode"];
           notes?: string | null;

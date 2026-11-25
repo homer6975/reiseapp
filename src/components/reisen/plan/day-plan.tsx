@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useRealtimeRefresh } from "@/lib/use-realtime-refresh";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +48,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { createClient } from "@/lib/supabase/client";
 import { formatDayShort } from "@/lib/format";
 import { placeAt } from "@/lib/ordering";
 import type { ItemKind } from "@/lib/schemas/day-item";
@@ -106,7 +106,7 @@ export function DayPlan({
     if (!dragging.current) setItems(serverItems);
   }, [serverItems]);
 
-  useRealtimeRefresh(tripId);
+  useRealtimeRefresh("day_item", tripId);
 
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const baseColumns = useMemo(() => buildColumns(items, days), [items, days]);
@@ -354,50 +354,6 @@ export function DayPlan({
       )}
     </div>
   );
-}
-
-function useRealtimeRefresh(tripId: string) {
-  const router = useRouter();
-  useEffect(() => {
-    const supabase = createClient();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const schedule = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => router.refresh(), 100);
-    };
-    let channel: ReturnType<typeof supabase.channel> | undefined;
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (data.session)
-        await supabase.realtime.setAuth(data.session.access_token);
-      channel = supabase
-        .channel(`plan-${tripId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "day_item",
-            filter: `trip_id=eq.${tripId}`,
-          },
-          schedule,
-        )
-        // Löschungen lassen sich nicht filtern.
-        .on(
-          "postgres_changes",
-          { event: "DELETE", schema: "public", table: "day_item" },
-          schedule,
-        )
-        .subscribe();
-    })();
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      if (channel) void supabase.removeChannel(channel);
-    };
-  }, [tripId, router]);
 }
 
 function Column({
