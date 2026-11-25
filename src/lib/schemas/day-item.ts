@@ -248,3 +248,35 @@ export function parseDayItemForm(
     },
   };
 }
+
+export type PlaceGeo = {
+  lat: number;
+  lon: number;
+  countryCode: string | null;
+  externalId: string | null;
+};
+
+const placeGeoSchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lon: z.coerce.number().min(-180).max(180),
+  countryCode: z
+    .string()
+    .regex(/^[A-Z]{2}$/)
+    .nullable()
+    .catch(null),
+  externalId: z.string().max(200).nullable().catch(null),
+});
+
+/** Koordinaten aus der Ortssuche (KA-03); fehlen sie, bleibt der Ort ohne Koordinaten. */
+export function parsePlaceGeo(formData: FormData): PlaceGeo | null {
+  const lat = formData.get("place_lat");
+  const lon = formData.get("place_lon");
+  if (!lat || !lon) return null;
+  const parsed = placeGeoSchema.safeParse({
+    lat,
+    lon,
+    countryCode: formData.get("place_country") || null,
+    externalId: formData.get("place_external_id") || null,
+  });
+  return parsed.success ? parsed.data : null;
+}

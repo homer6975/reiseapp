@@ -38,6 +38,12 @@ export type PlanItem = {
   url: string | null;
   details: Record<string, unknown>;
   placeName: string | null;
+  place: {
+    lat: number;
+    lon: number;
+    countryCode: string | null;
+    externalId: string | null;
+  } | null;
 };
 
 const TRIP_FIELDS = "id, title, start_date, end_date, mode, status";
@@ -82,7 +88,7 @@ export async function loadPlanItems(
   const { data } = await supabase
     .from("day_item")
     .select(
-      "id, day, position, kind, title, start_at, end_at, tz, end_tz, span_days, booking_ref, url, details, place:place!day_item_place_id_fkey(name)",
+      "id, day, position, kind, title, start_at, end_at, tz, end_tz, span_days, booking_ref, url, details, place:place!day_item_place_id_fkey(name, lat, lon, country_code, external_id)",
     )
     .eq("trip_id", tripId)
     .order("position");
@@ -90,6 +96,15 @@ export async function loadPlanItems(
     ...item,
     details: (details ?? {}) as Record<string, unknown>,
     placeName: place?.name ?? null,
+    place:
+      place && place.lat !== null && place.lon !== null
+        ? {
+            lat: place.lat,
+            lon: place.lon,
+            countryCode: place.country_code,
+            externalId: place.external_id,
+          }
+        : null,
   }));
 }
 
