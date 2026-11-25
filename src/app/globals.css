@@ -18,10 +18,16 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-highlight-soft: var(--highlight-soft);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --font-sans: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  --shadow-card: var(--card-shadow);
+  --color-card-border: var(--card-border);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -29,48 +35,96 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Design „Ostsee“: Petrol als Grundfarbe, Koralle als Akzent */
+  --radius: 0.75rem;
+  --background: #f7f9fa;
+  --foreground: #0b1c22;
+  --card: #ffffff;
+  --card-foreground: #0b1c22;
+  --popover: #ffffff;
+  --popover-foreground: #0b1c22;
+  --primary: #0b5c73;
+  --primary-foreground: #ffffff;
+  --secondary: #e6f2f4;
+  --secondary-foreground: #0b4a5c;
+  --muted: #eef3f4;
+  --muted-foreground: #5f7178;
+  --accent: #e6f2f4;
+  --accent-foreground: #0b4a5c;
+  --highlight: #ff6a4d;
+  --highlight-foreground: #ffffff;
+  --highlight-soft: #ffede8;
+  --destructive: #d9342b;
+  --border: #e3eaec;
+  --input: #d5e0e3;
+  --ring: #127a8f;
+  --card-border: transparent;
+  --card-shadow: 0 1px 2px rgb(11 40 50 / 6%), 0 4px 14px rgb(11 40 50 / 6%);
+  --hero: linear-gradient(140deg, #0b5c73, #127a8f);
+  --hero-foreground: #ffffff;
+  --hero-number: #ffd2c7;
+
+  /* Feste Farbe je Eintragsart (Tagesplan, Symbole) */
+  --kind-flight: #2b7be4;
+  --kind-flight-soft: #e3eefc;
+  --kind-transport: #5b6b73;
+  --kind-transport-soft: #eceff0;
+  --kind-lodging: #7a5af0;
+  --kind-lodging-soft: #eee9fe;
+  --kind-campsite: #a0662a;
+  --kind-campsite-soft: #f6ebdd;
+  --kind-game: #e8553a;
+  --kind-game-soft: #ffe7e1;
+  --kind-activity: #0e9f6e;
+  --kind-activity-soft: #ddf5ec;
+  --kind-note: #8a7a1f;
+  --kind-note-soft: #f6f1d6;
 }
 
-/* Dark Mode folgt der Systemeinstellung (SPEC §7) */
+/* Dark Mode folgt der Systemeinstellung (SPEC §7): tiefes Meeresblau statt Schwarz */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --background: #071419;
+    --foreground: #e7f1f3;
+    --card: #0f2229;
+    --card-foreground: #e7f1f3;
+    --popover: #0f2229;
+    --popover-foreground: #e7f1f3;
+    --primary: #4fc1d6;
+    --primary-foreground: #04252d;
+    --secondary: #11272e;
+    --secondary-foreground: #cfe6ea;
+    --muted: #11272e;
+    --muted-foreground: #8ea5ac;
+    --accent: #163039;
+    --accent-foreground: #e7f1f3;
+    --highlight: #ff7d63;
+    --highlight-foreground: #2a0a03;
+    --highlight-soft: #3a1c16;
+    --destructive: #ff6b61;
+    --border: #1c343c;
+    --input: #24414a;
+    --ring: #4fc1d6;
+    --card-border: #1c343c;
+    --card-shadow: none;
+    --hero: linear-gradient(140deg, #0f4e60, #0c3a47);
+    --hero-foreground: #ffffff;
+    --hero-number: #ff9b85;
+
+    --kind-flight: #7fb0f5;
+    --kind-flight-soft: #13284a;
+    --kind-transport: #a9b8bf;
+    --kind-transport-soft: #1b2c32;
+    --kind-lodging: #b4a2ff;
+    --kind-lodging-soft: #261e48;
+    --kind-campsite: #e0b07a;
+    --kind-campsite-soft: #33251a;
+    --kind-game: #ff9b85;
+    --kind-game-soft: #3a1c16;
+    --kind-activity: #5fd3a6;
+    --kind-activity-soft: #0d3326;
+    --kind-note: #e2cf6b;
+    --kind-note-soft: #2e2a12;
   }
 }
 
@@ -83,12 +137,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family:
-      system-ui,
-      -apple-system,
-      "Segoe UI",
-      Roboto,
-      sans-serif;
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

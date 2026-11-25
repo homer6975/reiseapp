@@ -9,9 +9,9 @@ import { UserMenu } from "@/components/shell/user-menu";
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-b px-4 pt-[env(safe-area-inset-top)]">
+      <header className="border-b bg-background/85 px-4 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between">
-          <Link href="/" className="text-lg font-semibold">
+          <Link href="/" className="text-lg font-bold tracking-tight text-primary">
             Familien-Trips
           </Link>
           <Suspense>
@@ -26,7 +26,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       </main>
       <nav
         aria-label="Hauptnavigation"
-        className="sticky bottom-0 min-h-14 border-t bg-background pb-[env(safe-area-inset-bottom)]"
+        className="sticky bottom-0 min-h-14 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
       >
         <Suspense>
           <BottomNav />

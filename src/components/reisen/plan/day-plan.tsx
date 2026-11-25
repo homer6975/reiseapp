@@ -445,6 +445,33 @@ function SortableItem({
   );
 }
 
+// Feste Farbe je Eintragsart (Design „Ostsee“, Tokens in globals.css).
+function KindBadge({
+  kind,
+  Icon,
+  small,
+}: {
+  kind: ItemKind;
+  Icon: LucideIcon;
+  small?: boolean;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-[10px]",
+        small ? "size-6" : "size-8",
+      )}
+      style={{
+        color: `var(--kind-${kind})`,
+        backgroundColor: `var(--kind-${kind}-soft)`,
+      }}
+    >
+      <Icon className="size-4" />
+    </span>
+  );
+}
+
 function ItemCard({
   item,
   onDay,
@@ -467,21 +494,25 @@ function ItemCard({
   const detail = detailText(item);
   const body = (
     <>
-      <p className="flex items-center gap-2 font-medium">
-        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="truncate">{item.title}</span>
-      </p>
-      {time && <p className="text-sm">{time}</p>}
-      {detail && !band && (
-        <p className="line-clamp-2 text-sm text-muted-foreground">{detail}</p>
-      )}
+      <span className="flex items-start gap-3">
+        <KindBadge kind={item.kind} Icon={Icon} small={band} />
+        <span className="block min-w-0 flex-1">
+          <span className="block truncate font-semibold">{item.title}</span>
+          {time && <span className="block text-sm">{time}</span>}
+          {detail && !band && (
+            <span className="line-clamp-2 block text-sm text-muted-foreground">
+              {detail}
+            </span>
+          )}
+        </span>
+      </span>
     </>
   );
   return (
     <div
       className={cn(
-        "flex items-start gap-2 rounded-lg border bg-card p-3",
-        band && "border-dashed bg-muted/60 py-2",
+        "flex items-start gap-2 rounded-2xl border border-card-border bg-card p-3 shadow-card",
+        band && "border-dashed border-border bg-muted/60 py-2 shadow-none",
         dragging && "shadow-lg",
       )}
     >
