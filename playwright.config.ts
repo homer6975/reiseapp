@@ -2,9 +2,18 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = 3100;
 
+// Env für Global-Setup (Service-Role-Key) aus .env.local laden, falls vorhanden.
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // in CI kommen die Variablen aus der Umgebung
+}
+
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  globalSetup: "./e2e/global-setup.ts",
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",

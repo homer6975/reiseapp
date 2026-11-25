@@ -18,6 +18,10 @@ pnpm exec supabase status   # URL, anon key, service_role key in .env.local eint
 pnpm dev               # http://localhost:3000
 ```
 
+## Anmeldung
+
+Kein Self-Signup: Nur Adressen, die als Person im Haushalt stehen, bekommen eine Anmelde-Mail mit Link und 6-stelligem Code. Lokal landen alle Mails in Mailpit (http://127.0.0.1:54324). Die Mail-Vorlage liegt in `supabase/templates/magic_link.html`.
+
 ## Befehle
 
 | Befehl                                         | Zweck                                                              |
