@@ -18,3 +18,15 @@ export function formatDateRange(start: string, end: string): string {
     ? formatDate(start)
     : `${formatDate(start)} – ${formatDate(end)}`;
 }
+
+const shortDayFormat = new Intl.DateTimeFormat("de-DE", {
+  weekday: "short",
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "UTC",
+});
+
+// ISO-Datum als „Mo., 12.07.“ (Tagesplan).
+export function formatDayShort(iso: string): string {
+  return shortDayFormat.format(new Date(`${iso}T00:00:00Z`));
+}
