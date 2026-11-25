@@ -52,6 +52,7 @@ export default defineConfig({
           env: {
             KDRIVE_API_URL: "http://127.0.0.1:3199",
             KDRIVE_TOKEN: "test-token",
+            FRANKFURTER_API_URL: "http://127.0.0.1:3199",
           },
         },
       ],

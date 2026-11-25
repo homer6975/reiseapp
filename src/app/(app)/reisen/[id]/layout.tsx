@@ -38,7 +38,7 @@ export default async function TripLayout({
           {TRIP_MODES[trip.mode]} · {TRIP_STATUS[trip.status]}
         </p>
       </div>
-      <TripTabs tripId={trip.id} />
+      <TripTabs tripId={trip.id} isParent={me.isParent} />
       {children}
     </section>
   );

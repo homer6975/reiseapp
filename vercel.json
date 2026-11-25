@@ -9,6 +9,14 @@
     {
       "path": "/api/cron/holidays",
       "schedule": "0 3 1 * *"
+    },
+    {
+      "path": "/api/cron/fx?slot=summer",
+      "schedule": "0 15 * * 1-5"
+    },
+    {
+      "path": "/api/cron/fx?slot=winter",
+      "schedule": "0 16 * * 1-5"
     }
   ]
 }

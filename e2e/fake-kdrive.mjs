@@ -1,4 +1,4 @@
-// Minimaler Fake der kDrive-API für E2E-Tests (nur die Endpunkte aus src/server/integrations/kdrive.ts).
+// Minimaler Fake der kDrive- und Frankfurter-API für E2E-Tests (nur die Endpunkte aus src/server/integrations/kdrive.ts).
 import { createServer } from "node:http";
 
 const port = Number(process.env.FAKE_KDRIVE_PORT ?? 3199);
@@ -28,6 +28,17 @@ createServer(async (req, res) => {
   const p = url.pathname;
   let m;
   if (p === "/__files") return ok(res, [...files.values()]);
+  // Fake-Frankfurter (EZB-Kurse): fester Kurs je Datum, „latest“ für Zukunftsdaten
+  if ((m = p.match(/^\/v1\/(latest|\d{4}-\d{2}-\d{2})$/))) {
+    const from = url.searchParams.get("from");
+    const rate = from === "USD" ? (m[1] === "latest" ? 0.95 : 0.92345678) : 1.1;
+    return json(res, 200, {
+      amount: 1,
+      base: from,
+      date: m[1] === "latest" ? "2026-11-24" : m[1],
+      rates: { EUR: rate },
+    });
+  }
   if (req.headers.authorization !== "Bearer test-token") {
     return json(res, 401, {
       result: "error",
