@@ -63,10 +63,8 @@ export const detailsSchemas = {
   }),
   campsite: z.object({
     pitch: text(40),
-    power: checkbox,
     checkIn: hhmm,
     checkOut: hhmm,
-    servicePoint: text(),
     phone: text(40),
   }),
   game: z.object({
@@ -101,7 +99,7 @@ const DETAIL_FIELDS: Record<ItemKind, string[]> = {
   ],
   transport: ["mode", "provider", "pickup", "dropoff"],
   lodging: ["checkIn", "checkOut", "phone", "breakfast"],
-  campsite: ["pitch", "power", "checkIn", "checkOut", "servicePoint", "phone"],
+  campsite: ["pitch", "checkIn", "checkOut", "phone"],
   game: ["opponent", "field", "team", "uniform", "arrivalBefore"],
   activity: ["text"],
   note: ["text"],
@@ -176,6 +174,30 @@ export function parseDayItemForm(
   if (!details.success) return details;
 
   const startTz = b.tz ?? DEFAULT_TZ;
+  if (b.kind === "flight") {
+    const checkin = formData.get("checkin_local");
+    if (typeof checkin === "string" && checkin.trim()) {
+      const m = checkin.trim().match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+      if (!m) {
+        return {
+          success: false,
+          error: new z.ZodError([
+            {
+              code: "custom",
+              path: ["checkin_local"],
+              message: "Check-in-Zeit ungültig.",
+              input: checkin,
+            },
+          ]),
+        };
+      }
+      (details.data as { checkinOpensAt?: string }).checkinOpensAt = localToUtc(
+        m[1],
+        m[2],
+        startTz,
+      );
+    }
+  }
   const endTz = b.end_tz ?? startTz;
   const multiDay = MULTI_DAY_KINDS.includes(b.kind);
   let start_at: string | null = null;

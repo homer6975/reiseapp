@@ -1,6 +1,7 @@
 import { addDays, daysBetween } from "@/lib/dates";
 import { MULTI_DAY_KINDS } from "@/lib/schemas/day-item";
-import { DEFAULT_TZ, flightTimes, localTime } from "@/lib/timezone";
+import { formatDayShort } from "@/lib/format";
+import { DEFAULT_TZ, flightTimes, localDate, localTime } from "@/lib/timezone";
 import { TRANSPORT_MODES } from "@/lib/trip-labels";
 import type { PlanItem } from "@/server/trips/data";
 
@@ -66,6 +67,7 @@ export function detailText(item: PlanItem): string | null {
         str(d.terminalDep) && `Terminal ${d.terminalDep}`,
         seats && `Sitze ${seats}`,
         str(d.baggage),
+        checkinText(item) ?? undefined,
       );
       break;
     }
@@ -81,12 +83,7 @@ export function detailText(item: PlanItem): string | null {
       parts.push(d.breakfast ? "mit Frühstück" : undefined, str(d.phone));
       break;
     case "campsite":
-      parts.push(
-        str(d.pitch) && `Stellplatz ${d.pitch}`,
-        d.power ? "Strom" : undefined,
-        str(d.servicePoint) && `Ver-/Entsorgung: ${d.servicePoint}`,
-        str(d.phone),
-      );
+      parts.push(str(d.pitch) && `Stellplatz ${d.pitch}`, str(d.phone));
       break;
     case "game":
       parts.push(
@@ -106,4 +103,15 @@ export function detailText(item: PlanItem): string | null {
   if (item.booking_ref) parts.push(`Buchung ${item.booking_ref}`);
   const text = parts.filter(Boolean).join(" · ");
   return text || null;
+}
+
+/** „Check-in ab Do., 29.07., 10:05“ in Ortszeit des Abflugs (RA-05). */
+export function checkinText(item: {
+  tz: string | null;
+  details: Record<string, unknown>;
+}): string | null {
+  const at = str(item.details.checkinOpensAt);
+  if (!at) return null;
+  const tz = item.tz ?? DEFAULT_TZ;
+  return `Check-in ab ${formatDayShort(localDate(at, tz))}, ${localTime(at, tz)}`;
 }

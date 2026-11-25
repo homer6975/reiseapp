@@ -16,7 +16,7 @@
 | 2026-11-25 | Standardansicht des Jahresplaners ist das Schuljahr (Aug–Jul), umschaltbar auf Kalenderjahr | M2 | Annahme |
 | 2026-11-25 | „Termin → Reise“ legt nur Reise und Teilnehmende an; kDrive-Ordner (M4) und Packliste (M6) folgen in den Meilensteinen | M2, JP-09 | |
 | 2026-11-25 | Migration 0003 (Unique-Key für den Ferien-Upsert) muss in der Cloud-DB eingespielt werden, sonst schlägt der Import fehl | M2 | |
-| 2026-11-25 | RA-05, RA-06, ZE-01, ZE-02 sind in SPEC.md nicht beschrieben. Annahme: Flug- und Camping-/Wohnwagenreisen im Tagesplan, gemeinsames Planen mit Live-Abgleich, Rollen Planer/Mitreisende | M3 | |
+| 2026-11-25 | RA-05, RA-06, ZE-01, ZE-02 sind in SPEC.md nicht beschrieben. Annahme: Flug- und Camping-/Wohnwagenreisen im Tagesplan, gemeinsames Planen mit Live-Abgleich, Rollen Planer/Mitreisende | M3 | Anforderungen von Markus nachgereicht (25.11.): RA-05 Flug inkl. Check-in-Erinnerung, RA-06 Campingplatz mit Stellplatz und An-/Abreisezeiten, ohne Strom und Ver-/Entsorgung; ZE-01 Rollen je Reise; ZE-02 Live-Aktualisierung |
 | 2026-11-25 | `/reisen/neu` laut SPEC §7 mit „Aktivitäten, Klima“: dafür gibt es im Schema noch keine Felder. Kommen sie mit den Packlisten (M6)? | M3 | Annahme: mit M6 |
 | 2026-11-25 | Orte im Tagesplan werden nur per Name gespeichert; Geocoding folgt mit der Karte (M7). Flughafen-Zeitzonen sind für ca. 50 häufige Flughäfen hinterlegt, sonst Zeitzone von Hand | M3 | |
 | 2026-11-25 | „Verschieben nach …“ ist ein flaches Menü (Tage direkt gelistet) statt Untermenü, weil Untermenüs auf dem iPhone schlecht bedienbar sind | M3, NF-11 | |

@@ -87,3 +87,48 @@ export async function loadPlanItems(
     placeName: place?.name ?? null,
   }));
 }
+
+export type CheckinReminder = {
+  id: string;
+  title: string;
+  tripId: string;
+  tripTitle: string;
+  tz: string | null;
+  opensAt: string;
+  isOpen: boolean;
+  details: Record<string, unknown>;
+};
+
+/** Flüge, deren Online-Check-in in den nächsten 48 h öffnet oder schon offen ist (RA-05). */
+export async function loadCheckinReminders(
+  supabase: Supabase,
+  householdId: string,
+  now = new Date(),
+): Promise<CheckinReminder[]> {
+  const { data } = await supabase
+    .from("day_item")
+    .select(
+      "id, title, tz, start_at, details, trip!inner(id, title, household_id)",
+    )
+    .eq("kind", "flight")
+    .eq("trip.household_id", householdId)
+    .gt("start_at", now.toISOString())
+    .not("details->>checkinOpensAt", "is", null);
+  const horizon = now.getTime() + 48 * 3_600_000;
+  return (data ?? [])
+    .map((f) => {
+      const details = (f.details ?? {}) as Record<string, unknown>;
+      return {
+        id: f.id,
+        title: f.title,
+        tripId: f.trip.id,
+        tripTitle: f.trip.title,
+        tz: f.tz,
+        opensAt: String(details.checkinOpensAt),
+        isOpen: Date.parse(String(details.checkinOpensAt)) <= now.getTime(),
+        details,
+      };
+    })
+    .filter((r) => Date.parse(r.opensAt) <= horizon)
+    .sort((a, b) => a.opensAt.localeCompare(b.opensAt));
+}

@@ -148,6 +148,21 @@ function ItemForm({
             />
           </Field>
           {text("baggage", "Gepäck")}
+          <Field
+            label="Online-Check-in ab (Ortszeit Abflug)"
+            htmlFor="f-checkin"
+          >
+            <Input
+              id="f-checkin"
+              name="checkin_local"
+              type="datetime-local"
+              defaultValue={
+                typeof d.checkinOpensAt === "string"
+                  ? `${localDate(d.checkinOpensAt, startTz)}T${localTime(d.checkinOpensAt, startTz)}`
+                  : ""
+              }
+            />
+          </Field>
         </>
       );
       break;
@@ -190,11 +205,8 @@ function ItemForm({
           {text("checkIn", "Check-in", { type: "time" })}
           {text("checkOut", "Check-out", { type: "time" })}
           {kind === "campsite" && text("pitch", "Stellplatz")}
-          {kind === "campsite" && text("servicePoint", "Ver-/Entsorgung")}
           {text("phone", "Telefon", { type: "tel" })}
-          {kind === "lodging"
-            ? check("breakfast", "Frühstück")
-            : check("power", "Strom")}
+          {kind === "lodging" && check("breakfast", "Frühstück")}
         </>
       );
       break;

@@ -7,16 +7,18 @@ import { addDays, daysBetween, todayInBerlin } from "@/lib/dates";
 import { formatDate, formatDateRange } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { loadEvents, loadPersons } from "@/server/planner/data";
-import { loadTrips } from "@/server/trips/data";
+import { checkinText } from "@/components/reisen/plan/item-text";
+import { loadCheckinReminders, loadTrips } from "@/server/trips/data";
 import { Card } from "@/components/ui/card";
 
 export default async function DashboardPage() {
   const me = await getMe();
   const today = todayInBerlin();
   const supabase = await createClient();
-  const [persons, trips] = await Promise.all([
+  const [persons, trips, checkins] = await Promise.all([
     loadPersons(supabase, me.householdId),
     loadTrips(supabase, me.householdId),
+    loadCheckinReminders(supabase, me.householdId),
   ]);
   const nextTrip = trips.find(
     (t) => t.status !== "idea" && t.status !== "done" && t.end_date >= today,
@@ -66,6 +68,25 @@ export default async function DashboardPage() {
             </p>
           </Card>
         </Link>
+      )}
+
+      {checkins.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">Online-Check-in</h2>
+          <ul className="space-y-1 text-sm">
+            {checkins.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/reisen/${c.tripId}/plan`}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {c.title} ({c.tripTitle}):{" "}
+                  {c.isOpen ? "Check-in ist offen" : checkinText(c)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <div className="space-y-2">

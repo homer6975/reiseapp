@@ -44,7 +44,13 @@ test("Flug FRA→JFK zeigt beide Ortszeiten, Idee wandert auf einen Tag", async 
     await d.getByLabel("Nach (Flughafen)").fill("JFK");
     await d.getByLabel("Abfahrt/Abflug").fill("10:05");
     await d.getByLabel("Ankunft", { exact: true }).fill("12:55");
+    await d
+      .getByLabel("Online-Check-in ab (Ortszeit Abflug)")
+      .fill("2027-07-29T10:05");
   });
+  await expect(
+    day("Fr., 30.07.", page).getByText(/Check-in ab Do\., 29\.07\., 10:05/),
+  ).toBeVisible();
   await expect(
     day("Fr., 30.07.", page).getByText("FRA 10:05 → JFK 12:55 (Ortszeit)"),
   ).toBeVisible();

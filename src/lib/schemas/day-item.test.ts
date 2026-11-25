@@ -22,6 +22,7 @@ describe("parseDayItemForm", () => {
         d_fromIata: "fra",
         d_toIata: "JFK",
         d_seats: "32A, 32B",
+        checkin_local: "2027-07-29T10:05",
       }),
     );
     expect(r.success).toBe(true);
@@ -32,6 +33,7 @@ describe("parseDayItemForm", () => {
       fromIata: "FRA",
       toIata: "JFK",
       seats: ["32A", "32B"],
+      checkinOpensAt: "2027-07-29T08:05:00.000Z",
     });
   });
 
@@ -63,6 +65,29 @@ describe("parseDayItemForm", () => {
     if (!r.success) return;
     expect(r.data.row.day).toBeNull();
     expect(r.data.row.start_at).toBeNull();
+  });
+
+  it("Campingplatz ohne Strom und Ver-/Entsorgung", () => {
+    const r = parseDayItemForm(
+      form({
+        kind: "campsite",
+        title: "Camping am See",
+        day: "2027-08-01",
+        nights: "2",
+        d_pitch: "42",
+        d_checkIn: "14:00",
+        d_checkOut: "12:00",
+        d_power: "on",
+      }),
+    );
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.data.row.details).toEqual({
+      pitch: "42",
+      checkIn: "14:00",
+      checkOut: "12:00",
+    });
+    expect(r.data.row.span_days).toBe(3);
   });
 
   it("lehnt unbekannte Zeitzone ab", () => {
