@@ -3,7 +3,7 @@
 | Datum | Frage | Kontext | Antwort |
 | --- | --- | --- | --- |
 | 2026-11-24 | Welcher Kachelanbieter für die Karte (OpenFreeMap ohne Key oder MapTiler mit Key)? | SPEC §6.7, M7 | |
-| 2026-11-24 | Name/ID des kDrive-Root-Ordners „Reisen“? | SPEC §6.4, M4 | |
+| 2026-11-24 | Name/ID des kDrive-Root-Ordners „Reisen“? | SPEC §6.4, M4 | kDrive-ID 2222413, Ordner-ID 15962 (Markus, 25.11.); Eintrag in Einstellungen › kDrive |
 | 2026-11-24 | E-Mail-Adressen der Eltern für den Seed | SPEC §5.2, M1 | Repo bleibt öffentlich: `seed.sql` enthält nur Platzhalter, echte Daten stehen nur in der Supabase-Datenbank. Kinder haben eigene E-Mails und damit eigenen Login. |
 | 2026-11-24 | Existieren Supabase-Projekt (Frankfurt) und Vercel-Konto mit importiertem Repo? | M0 Deploy | |
 | 2026-11-24 | Next.js 16 aktiviert standardmäßig „Cache Components“. Beibehalten (Auth-Teile dann hinter `<Suspense>`) oder für M1 abschalten? | M0/M1, Next-Doku „Authentication with Cache Components“ | beibehalten; Session-Lesen steht hinter `<Suspense>`, Eltern-only-Routen prüft zusätzlich der Proxy (echte 404) |
@@ -20,3 +20,5 @@
 | 2026-11-25 | `/reisen/neu` laut SPEC §7 mit „Aktivitäten, Klima“: dafür gibt es im Schema noch keine Felder. Kommen sie mit den Packlisten (M6)? | M3 | Annahme: mit M6 |
 | 2026-11-25 | Orte im Tagesplan werden nur per Name gespeichert; Geocoding folgt mit der Karte (M7). Flughafen-Zeitzonen sind für ca. 50 häufige Flughäfen hinterlegt, sonst Zeitzone von Hand | M3 | |
 | 2026-11-25 | „Verschieben nach …“ ist ein flaches Menü (Tage direkt gelistet) statt Untermenü, weil Untermenüs auf dem iPhone schlecht bedienbar sind | M3, NF-11 | |
+| 2026-11-25 | kDrive-Endpunkte konnten nicht live geprüft werden (developer.infomaniak.com und api.infomaniak.com sind aus der Entwicklungsumgebung gesperrt). Abgeglichen mit der rclone-kDrive-Implementierung und einem zweiten Open-Source-Client; Test gegen echtes kDrive per „Verbindung testen“ und erstem Upload | M4 | |
+| 2026-11-25 | Uploads über die App höchstens 4 MB (Vercel-Funktionen nehmen max. 4,5 MB an). Größere Dateien direkt in kDrive in den Reiseordner legen und im Dokumente-Tab zuordnen | M4 | Annahme |

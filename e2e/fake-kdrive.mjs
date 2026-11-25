@@ -1,0 +1,88 @@
+// Minimaler Fake der kDrive-API für E2E-Tests (nur die Endpunkte aus src/server/integrations/kdrive.ts).
+import { createServer } from "node:http";
+
+const port = Number(process.env.FAKE_KDRIVE_PORT ?? 3199);
+const files = new Map([
+  [100, { id: 100, name: "Reisen", type: "dir", parent_id: 1 }],
+]);
+const contents = new Map();
+let nextId = 1000;
+
+const json = (res, status, body) => {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(body));
+};
+const ok = (res, data, extra = {}) =>
+  json(res, 200, { result: "success", data, ...extra });
+const notFound = (res) =>
+  json(res, 404, { result: "error", error: { code: "object_not_found" } });
+
+async function body(req) {
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  return Buffer.concat(chunks);
+}
+
+createServer(async (req, res) => {
+  const url = new URL(req.url, `http://localhost:${port}`);
+  const p = url.pathname;
+  let m;
+  if (p === "/__files") return ok(res, [...files.values()]);
+  if (req.headers.authorization !== "Bearer test-token") {
+    return json(res, 401, {
+      result: "error",
+      error: { code: "not_authorized" },
+    });
+  }
+  if ((m = p.match(/^\/2\/drive\/(\d+)$/)))
+    return ok(res, { id: Number(m[1]), name: "Test-kDrive" });
+  if ((m = p.match(/^\/3\/drive\/\d+\/files\/(\d+)\/files$/))) {
+    const id = Number(m[1]);
+    if (!files.has(id)) return notFound(res);
+    return ok(
+      res,
+      [...files.values()].filter((f) => f.parent_id === id),
+      { has_more: false },
+    );
+  }
+  if (
+    (m = p.match(/^\/3\/drive\/\d+\/files\/(\d+)\/directory$/)) &&
+    req.method === "POST"
+  ) {
+    const parent = Number(m[1]);
+    if (!files.has(parent)) return notFound(res);
+    const { name } = JSON.parse((await body(req)).toString());
+    const dir = { id: nextId++, name, type: "dir", parent_id: parent };
+    files.set(dir.id, dir);
+    return ok(res, dir);
+  }
+  if ((m = p.match(/^\/3\/drive\/\d+\/files\/(\d+)$/))) {
+    const f = files.get(Number(m[1]));
+    return f ? ok(res, f) : notFound(res);
+  }
+  if (p.match(/^\/3\/drive\/\d+\/upload$/) && req.method === "POST") {
+    const parent = Number(url.searchParams.get("directory_id"));
+    if (!files.has(parent)) return notFound(res);
+    const data = await body(req);
+    const file = {
+      id: nextId++,
+      name: url.searchParams.get("file_name"),
+      type: "file",
+      parent_id: parent,
+      size: data.length,
+      mime_type: req.headers["content-type"],
+    };
+    files.set(file.id, file);
+    contents.set(file.id, data);
+    return ok(res, file);
+  }
+  if ((m = p.match(/^\/2\/drive\/\d+\/files\/(\d+)\/download$/))) {
+    const id = Number(m[1]);
+    if (!contents.has(id)) return notFound(res);
+    res.writeHead(200, {
+      "Content-Type": files.get(id).mime_type ?? "application/octet-stream",
+    });
+    return res.end(contents.get(id));
+  }
+  return notFound(res);
+}).listen(port, () => console.log(`fake kDrive on ${port}`));

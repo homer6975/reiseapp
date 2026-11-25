@@ -8,6 +8,7 @@ import { requireParent } from "@/lib/auth";
 import { fail, ok, zodMessage, type FormState } from "@/lib/form-state";
 import { parseTripForm } from "@/lib/schemas/trip";
 import { createClient } from "@/lib/supabase/server";
+import { ensureTripFolder } from "@/server/documents/folders";
 
 const SAVE_ERROR = "Speichern hat nicht geklappt. Bitte nochmal versuchen.";
 const uuid = z.uuid();
@@ -89,6 +90,9 @@ export async function saveTrip(
     })),
   );
   if (memberError) return fail(SAVE_ERROR);
+
+  // Reiseordner in kDrive; ein Fehler blockiert die Reise nicht (Retry im Dokumente-Tab).
+  if (!id) await ensureTripFolder(supabase, me.householdId, tripId);
 
   revalidatePath("/", "layout");
   if (!id) redirect(`/reisen/${tripId}/plan`);
