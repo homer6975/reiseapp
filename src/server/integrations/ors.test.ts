@@ -8,6 +8,7 @@ const json = (body: unknown, status = 200) =>
 describe("ors", () => {
   const fetchMock = vi.fn();
   beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubEnv("ORS_API_KEY", "k");
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -106,6 +107,12 @@ describe("ors", () => {
     ).rejects.toMatchObject({
       code: "no_route",
     });
+    fetchMock.mockResolvedValueOnce(json({ error: "Access disallowed" }, 403));
+    await expect(geocode("Lazise")).rejects.toMatchObject({
+      code: "unauthorized",
+    });
+    fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"));
+    await expect(geocode("Lazise")).rejects.toMatchObject({ code: "failed" });
     vi.stubEnv("ORS_API_KEY", "");
     await expect(geocode("x")).rejects.toBeInstanceOf(OrsError);
   });
