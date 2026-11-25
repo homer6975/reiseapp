@@ -25,7 +25,11 @@ export type Route = {
 export class OrsError extends Error {
   constructor(
     public readonly code:
-      "not_configured" | "rate_limited" | "no_route" | "failed",
+      | "not_configured"
+      | "unauthorized"
+      | "rate_limited"
+      | "no_route"
+      | "failed",
     message?: string,
   ) {
     super(message ?? code);
@@ -38,6 +42,8 @@ export function orsMessage(error: unknown): string {
   switch (error.code) {
     case "not_configured":
       return "Kartendienst ist noch nicht eingerichtet (ORS_API_KEY fehlt).";
+    case "unauthorized":
+      return "Kartendienst lehnt den Schlüssel ab (ORS_API_KEY in Vercel prüfen).";
     case "rate_limited":
       return "Kartendienst ist gerade ausgelastet. Bitte gleich nochmal versuchen.";
     case "no_route":
@@ -60,29 +66,40 @@ function apiKey() {
 }
 
 async function call(path: string, init: RequestInit = {}) {
-  const res = await fetch(`${baseUrl()}${path}`, {
-    ...init,
-    headers: {
-      Authorization: apiKey(),
-      Accept: "application/json, application/geo+json",
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
-      ...init.headers,
-    },
-    signal: AbortSignal.timeout(10_000),
-    cache: "no-store",
-  });
-  if (res.status === 429) throw new OrsError("rate_limited");
-  // 404 bzw. Fehlercode 2009/2010: keine Route bzw. Punkt nicht routbar
-  if (res.status === 404) throw new OrsError("no_route");
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as {
-      error?: { code?: number };
-    } | null;
-    if (body?.error?.code && [2009, 2010, 2004].includes(body.error.code))
-      throw new OrsError("no_route");
-    throw new OrsError("failed", `ORS ${res.status}`);
+  // Nur Pfad ohne Query loggen: keine Ortsnamen, kein Schlüssel (SPEC §8.3).
+  const endpoint = path.split("?")[0];
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl()}${path}`, {
+      ...init,
+      headers: {
+        Authorization: apiKey(),
+        Accept: "application/json, application/geo+json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...init.headers,
+      },
+      signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
+    });
+  } catch (error) {
+    if (error instanceof OrsError) throw error;
+    console.error(`[ors] ${endpoint}: request failed`, (error as Error).name);
+    throw new OrsError("failed", "network");
   }
-  return res.json() as Promise<unknown>;
+  if (res.ok) return res.json() as Promise<unknown>;
+
+  const body = (await res.json().catch(() => null)) as {
+    error?: { code?: number; message?: string } | string;
+  } | null;
+  const code = typeof body?.error === "object" ? body.error.code : undefined;
+  console.error(`[ors] ${endpoint}: HTTP ${res.status}`, code ?? "");
+  if (res.status === 401 || res.status === 403)
+    throw new OrsError("unauthorized");
+  if (res.status === 429) throw new OrsError("rate_limited");
+  // 404 bzw. Fehlercode 2009/2010/2004: keine Route bzw. Punkt nicht routbar
+  if (res.status === 404 || (code && [2009, 2010, 2004].includes(code)))
+    throw new OrsError("no_route");
+  throw new OrsError("failed", `ORS ${res.status}`);
 }
 
 type PeliasFeature = {
