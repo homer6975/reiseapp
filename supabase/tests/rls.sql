@@ -84,5 +84,21 @@ do $$ begin
   assert (select value from vote where person_id = '33333333-3333-3333-3333-33333333333a') = 1, 'parent vote must be unchanged';
   assert (select count(*) from vote) = 2, 'child may vote for itself';
 end $$;
+-- Abstimmungen: Kind darf nicht entscheiden und nichts ins Protokoll schreiben
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+update poll set status = 'closed';
+do $$ begin assert (select status from poll) = 'open', 'child must not decide polls'; end $$;
+do $$ begin
+  begin
+    insert into activity_log(trip_id,person_id,action) values ('22222222-2222-2222-2222-222222222222','33333333-3333-3333-3333-33333333333b','poll.decided');
+    raise exception 'FAIL: child wrote activity log';
+  exception when others then if sqlerrm like 'FAIL%' then raise; end if; end;
+end $$;
+-- Elternteil darf protokollieren
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+insert into activity_log(trip_id,person_id,action) values ('22222222-2222-2222-2222-222222222222','33333333-3333-3333-3333-33333333333a','poll.decided');
+do $$ begin assert (select count(*) from activity_log) = 1, 'parent may write activity log'; end $$;
+reset role;
 rollback;
 \echo RLS tests passed

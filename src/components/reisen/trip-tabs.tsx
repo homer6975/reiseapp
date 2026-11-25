@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-// Reiter innerhalb einer Reise; Karte und Abstimmungen folgen mit M7.
+// Reiter innerhalb einer Reise; die Karte folgt mit M7.
 export function TripTabs({
   tripId,
   isParent,
@@ -17,6 +17,7 @@ export function TripTabs({
   const tabs = [
     { href: `/reisen/${tripId}/plan`, label: "Plan" },
     { href: `/reisen/${tripId}/packliste`, label: "Packliste" },
+    { href: `/reisen/${tripId}/abstimmungen`, label: "Abstimmungen" },
     { href: `/reisen/${tripId}/dokumente`, label: "Dokumente" },
     // Kosten nur für Eltern – auch nicht in der Navigation (SPEC §2).
     ...(isParent

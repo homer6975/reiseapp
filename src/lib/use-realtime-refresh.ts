@@ -9,10 +9,12 @@ import { createClient } from "@/lib/supabase/client";
  * Lädt die Seite neu (router.refresh), sobald sich in `table` etwas zur Reise
  * ändert (ZE-02). RLS gilt auch für Realtime: jeder sieht nur, was er lesen darf.
  */
-export function useRealtimeRefresh(
-  table: "day_item" | "packing_item",
-  tripId: string,
-) {
+type Table = "day_item" | "packing_item" | "poll" | "poll_option" | "vote";
+// Tabellen ohne trip_id lassen sich nicht nach Reise filtern.
+const WITH_TRIP_ID: readonly Table[] = ["day_item", "packing_item", "poll"];
+
+export function useRealtimeRefresh(tables: Table | Table[], tripId: string) {
+  const key = ([] as Table[]).concat(tables).join(",");
   const router = useRouter();
   useEffect(() => {
     const supabase = createClient();
@@ -28,30 +30,40 @@ export function useRealtimeRefresh(
       if (cancelled) return;
       if (data.session)
         await supabase.realtime.setAuth(data.session.access_token);
-      channel = supabase
-        .channel(`${table}-${tripId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table,
-            filter: `trip_id=eq.${tripId}`,
-          },
-          schedule,
-        )
-        // Löschungen lassen sich nicht filtern.
-        .on(
-          "postgres_changes",
-          { event: "DELETE", schema: "public", table },
-          schedule,
-        )
-        .subscribe();
+      channel = supabase.channel(`${key}-${tripId}`);
+      for (const table of key.split(",") as Table[]) {
+        if (WITH_TRIP_ID.includes(table)) {
+          channel
+            .on(
+              "postgres_changes",
+              {
+                event: "*",
+                schema: "public",
+                table,
+                filter: `trip_id=eq.${tripId}`,
+              },
+              schedule,
+            )
+            // Löschungen lassen sich nicht filtern.
+            .on(
+              "postgres_changes",
+              { event: "DELETE", schema: "public", table },
+              schedule,
+            );
+        } else {
+          channel.on(
+            "postgres_changes",
+            { event: "*", schema: "public", table },
+            schedule,
+          );
+        }
+      }
+      channel.subscribe();
     })();
     return () => {
       cancelled = true;
       clearTimeout(timer);
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [table, tripId, router]);
+  }, [key, tripId, router]);
 }

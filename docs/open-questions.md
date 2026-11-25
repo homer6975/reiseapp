@@ -28,3 +28,7 @@
 | 2026-11-25 | Welche Vorlagen gelten bei Reiseart „Gemischt“? | M6 | Auto + Flug, ohne Wohnwagen-Checkliste (Markus, 25.11.) |
 | 2026-11-25 | „Neu berechnen“ ergänzt fehlende Einträge und passt bei noch nicht abgehakten Vorlagen-Einträgen die Menge an (z. B. Trikots nach neuen Spieltagen); gelöscht wird nichts | M6 | Annahme |
 | 2026-11-25 | Packliste wird beim Anlegen der Reise (auch aus einem Termin) automatisch erzeugt; danach nur per „Neu berechnen“ | M6 | Annahme |
+| 2026-11-25 | Kachelanbieter Karte | M7 | OpenFreeMap ohne Schlüssel (Markus, 25.11.) |
+| 2026-11-25 | M7 kommt in drei PRs: Abstimmungen, Karte, Export (PDF + ICS) | M7 | Annahme, Markus informiert |
+| 2026-11-25 | Abstimmungs-Optionen sind Text, optional mit Tag; Zeitraum-Optionen gibt es noch nicht. Ist „Gewinner in den Plan“ angehakt, wird die Gewinner-Option als Aktivität am gewählten Tag (sonst Ideen-Ablage) angelegt | M7, §6.6 | Annahme |
+| 2026-11-25 | Migration 0005: Eltern dürfen ins `activity_log` schreiben (0001 erlaubte nur Lesen) | M7 | |

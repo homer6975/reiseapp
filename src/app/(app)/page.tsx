@@ -8,6 +8,7 @@ import { formatDate, formatDateRange } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { loadEvents, loadPersons } from "@/server/planner/data";
 import { checkinText } from "@/components/reisen/plan/item-text";
+import { loadOpenPolls } from "@/server/polls/data";
 import { loadCheckinReminders, loadTrips } from "@/server/trips/data";
 import { Card } from "@/components/ui/card";
 
@@ -15,10 +16,11 @@ export default async function DashboardPage() {
   const me = await getMe();
   const today = todayInBerlin();
   const supabase = await createClient();
-  const [persons, trips, checkins] = await Promise.all([
+  const [persons, trips, checkins, polls] = await Promise.all([
     loadPersons(supabase, me.householdId),
     loadTrips(supabase, me.householdId),
     loadCheckinReminders(supabase, me.householdId),
+    loadOpenPolls(supabase, me.householdId, me.personId),
   ]);
   const nextTrip = trips.find(
     (t) => t.status !== "idea" && t.status !== "done" && t.end_date >= today,
@@ -82,6 +84,29 @@ export default async function DashboardPage() {
                 >
                   {c.title} ({c.tripTitle}):{" "}
                   {c.isOpen ? "Check-in ist offen" : checkinText(c)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {polls.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">Offene Abstimmungen</h2>
+          <ul className="space-y-1 text-sm">
+            {polls.map((p) => (
+              <li key={p.id}>
+                <Link
+                  href={`/reisen/${p.tripId}/abstimmungen`}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {p.question} ({p.tripTitle})
+                  {p.expired && me.isParent
+                    ? ": Abstimmung abgelaufen – entscheiden"
+                    : p.votedByMe
+                      ? ""
+                      : ": noch nicht abgestimmt"}
                 </Link>
               </li>
             ))}
