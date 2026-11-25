@@ -48,7 +48,7 @@ test("Abstimmung: Kind stimmt ab, Eltern sehen es live und entscheiden → Plan"
   await child.goto("/");
   await expect(
     child.getByRole("link", {
-      name: `${question} (Gardasee ${suffix}): noch nicht abgestimmt`,
+      name: `${question}: Gardasee ${suffix} · noch nicht abgestimmt`,
     }),
   ).toBeVisible();
   await child.goto(`${tripUrl}/abstimmungen`);
