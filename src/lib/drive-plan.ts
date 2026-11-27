@@ -84,7 +84,8 @@ export function planDrive(input: {
   prices: EnergyPrices | null;
 }): DrivePlan {
   const { vehicle: v, prices } = input;
-  const distanceKm = input.distanceM / 1000;
+  // Ganze Kilometer, wie im Eintrag gespeichert: Anzeige und Ausgabe rechnen gleich.
+  const distanceKm = Math.round(input.distanceM / 1000);
   const driveMin = Math.round(input.durationS / 60);
   const bufferMin = Math.round(driveMin * BUFFER_FACTOR) + BUFFER_FIXED_MIN;
   const winter = isWinter(input.date);
@@ -123,7 +124,7 @@ export function planDrive(input: {
     vehicleId: v.id,
     vehicleName: v.name,
     fuel: v.fuel,
-    distanceKm: Math.round(distanceKm),
+    distanceKm,
     driveMin,
     bufferMin,
     breakMin,
