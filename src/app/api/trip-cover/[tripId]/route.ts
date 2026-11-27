@@ -10,10 +10,7 @@ import {
   kdriveMessage,
   uploadFile,
 } from "@/server/integrations/kdrive";
-import {
-  isWikimediaImage,
-  USER_AGENT,
-} from "@/server/integrations/wikimedia";
+import { isWikimediaImage, USER_AGENT } from "@/server/integrations/wikimedia";
 
 // Reisebild: liefert das eigene Bild (kDrive) oder das Stadtbild (Wikimedia) über den
 // Server aus, damit weder der kDrive-Token noch die Familie selbst nach außen sichtbar werden.
