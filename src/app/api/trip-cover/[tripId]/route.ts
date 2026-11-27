@@ -50,11 +50,18 @@ export async function GET(
     } else {
       return NOT_FOUND();
     }
-  } catch {
+  } catch (e) {
+    console.error("[trip-cover] Laden fehlgeschlagen", trip.cover_mode, e);
     return new Response("Bild nicht erreichbar", { status: 502 });
   }
-  if (!upstream.ok)
+  if (!upstream.ok) {
+    console.error(
+      "[trip-cover] Quelle antwortet",
+      trip.cover_mode,
+      upstream.status,
+    );
     return new Response("Bild nicht erreichbar", { status: 502 });
+  }
 
   const sent = (upstream.headers.get("content-type") ?? "").split(";")[0];
   const isCoverType = (COVER_TYPES as readonly string[]).includes(sent);
@@ -126,6 +133,7 @@ export async function POST(
       .eq("id", trip.id);
     if (error) return fail("Bild hochgeladen, aber nicht gespeichert.");
   } catch (e) {
+    console.error("[trip-cover] Upload fehlgeschlagen", e);
     return fail(kdriveMessage(e));
   }
   revalidatePath("/", "layout");
