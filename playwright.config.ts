@@ -56,6 +56,7 @@ export default defineConfig({
             ORS_API_URL: "http://127.0.0.1:3199",
             ORS_API_KEY: "test-ors-key",
             MAP_STYLE_URL: "http://127.0.0.1:3199/style.json",
+            WIKIMEDIA_API_URL: "http://127.0.0.1:3199",
           },
         },
       ],

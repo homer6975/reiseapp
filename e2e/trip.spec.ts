@@ -151,3 +151,93 @@ test("Kind kann keine Reise anlegen", async ({ page }) => {
   const res = await page.goto("/reisen/neu");
   expect(res?.status()).toBe(404);
 });
+
+test("Reisebild: Stadtfoto zum Reiseziel, eigenes Bild, Kind sieht nur das Bild", async ({
+  browser,
+}) => {
+  const parentCtx = await browser.newContext();
+  const page = await parentCtx.newPage();
+  const title = `Städtetrip ${Date.now().toString().slice(-6)}`;
+  await loginWithCode(page, TEST_PARENT.email);
+
+  // kDrive (Fake) für den eigenen Upload
+  await page.goto("/einstellungen/kdrive");
+  const kdrive = page.getByRole("form", { name: "kDrive" });
+  await kdrive
+    .getByLabel("kDrive-ID (Zahl aus der kDrive-Adresse)")
+    .fill("4242");
+  await kdrive.getByLabel("ID des Ordners „Reisen“").fill("100");
+  await kdrive.getByRole("button", { name: "Speichern" }).click();
+  await expect(kdrive.getByRole("status")).toBeVisible();
+
+  await page.goto("/reisen/neu");
+  const form = page.getByRole("form", { name: "Neue Reise" });
+  await form.getByLabel("Titel").fill(title);
+  await form.getByLabel("Reiseziel").fill("Kopenhagen");
+  await form.getByLabel("Von").fill("2027-05-01");
+  await form.getByLabel("Bis").fill("2027-05-04");
+  await form.getByRole("button", { name: "Reise anlegen" }).click();
+  await expect(page).toHaveURL(/\/reisen\/[0-9a-f-]{36}\/plan$/);
+  const tripUrl = page.url().replace(/\/plan$/, "");
+
+  // Kopfbild mit Bildnachweis (Wikidata-Foto statt Wappen)
+  const credit = page.getByRole("link", {
+    name: "Foto: Jane Doe · CC BY-SA 4.0 · Wikimedia Commons",
+  });
+  await expect(credit).toBeVisible();
+  const cover = page.locator(`img[src^="/api/trip-cover/"]`).first();
+  await expect
+    .poll(() => cover.evaluate((img: HTMLImageElement) => img.naturalWidth))
+    .toBe(2);
+
+  // Vorschaubild in der Reiseliste
+  await page.goto("/reisen");
+  await expect(
+    page
+      .getByRole("link", { name: new RegExp(title) })
+      .locator(`img[src^="/api/trip-cover/"]`),
+  ).toHaveCount(1);
+
+  // Eigenes Bild hochladen → ersetzt das Stadtfoto, ohne Bildnachweis
+  await page.goto(tripUrl);
+  await page.waitForLoadState("networkidle"); // Upload-Knopf erst nach dem Hydrieren aktiv
+  await page.getByLabel("Eigenes Reisebild wählen").setInputFiles({
+    name: "urlaub.png",
+    mimeType: "image/png",
+    buffer: await (
+      await fetch("http://127.0.0.1:3199/upload/nyhavn.png")
+    )
+      .arrayBuffer()
+      .then(Buffer.from),
+  });
+  await expect(page.getByText("Eigenes Bild", { exact: true })).toBeVisible();
+  await expect(credit).toHaveCount(0);
+  const files = (await (await fetch("http://127.0.0.1:3199/__files")).json())
+    .data as { name: string }[];
+  expect(files.some((f) => f.name === "Reisebild.jpg")).toBe(true);
+
+  // Kind sieht das Bild, kann es aber nicht ändern
+  const childCtx = await browser.newContext();
+  const child = await childCtx.newPage();
+  await loginWithCode(child, TEST_CHILD.email);
+  await child.goto(tripUrl);
+  await expect
+    .poll(() =>
+      child
+        .locator(`img[src^="/api/trip-cover/"]`)
+        .first()
+        .evaluate((img: HTMLImageElement) => img.naturalWidth),
+    )
+    .toBe(2);
+  await expect(child.getByLabel("Eigenes Reisebild wählen")).toHaveCount(0);
+
+  // Kein Bild → Kopf ohne Foto
+  await page
+    .getByRole("form", { name: "Reisebild entfernen" })
+    .getByRole("button", { name: "Kein Bild" })
+    .click();
+  await expect(page.locator(`img[src^="/api/trip-cover/"]`)).toHaveCount(0);
+
+  await parentCtx.close();
+  await childCtx.close();
+});

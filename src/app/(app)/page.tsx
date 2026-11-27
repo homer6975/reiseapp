@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plane, School, Vote } from "lucide-react";
 
 import { ConflictList } from "@/components/jahr/conflict-list";
+import { CoverImage } from "@/components/reisen/trip-cover";
 import { getMe } from "@/lib/auth";
 import { findConflicts } from "@/lib/conflicts";
 import { addDays, daysBetween, todayInBerlin } from "@/lib/dates";
@@ -10,7 +11,11 @@ import { createClient } from "@/lib/supabase/server";
 import { loadEvents, loadPersons } from "@/server/planner/data";
 import { checkinText } from "@/components/reisen/plan/item-text";
 import { loadOpenPolls } from "@/server/polls/data";
-import { loadCheckinReminders, loadTrips } from "@/server/trips/data";
+import {
+  loadCheckinReminders,
+  loadTrips,
+  type TripSummary,
+} from "@/server/trips/data";
 import { Card } from "@/components/ui/card";
 
 export default async function DashboardPage() {
@@ -64,23 +69,25 @@ export default async function DashboardPage() {
         Hallo {me.displayName}!
       </h1>
 
-      {nextTrip && (
+      {nextTrip && nextTrip.cover.src && (
+        <CoverImage
+          cover={{ ...nextTrip.cover, src: nextTrip.cover.src }}
+          priority
+        >
+          <Link
+            href={`/reisen/${nextTrip.id}/plan`}
+            className="block p-5 pt-16 transition-opacity hover:opacity-95"
+          >
+            <NextTripText trip={nextTrip} today={today} />
+          </Link>
+        </CoverImage>
+      )}
+      {nextTrip && !nextTrip.cover.src && (
         <Link
           href={`/reisen/${nextTrip.id}/plan`}
           className="block rounded-2xl bg-(image:--hero) p-5 text-(--hero-foreground) shadow-card transition-opacity hover:opacity-95"
         >
-          <p className="text-sm opacity-85">Nächste Reise</p>
-          <p className="mt-0.5 text-xl leading-snug font-bold tracking-tight">
-            {nextTrip.title}
-          </p>
-          <p className="mt-1 text-sm opacity-90">
-            {formatDateRange(nextTrip.start_date, nextTrip.end_date)}
-          </p>
-          <Countdown
-            start={nextTrip.start_date}
-            end={nextTrip.end_date}
-            today={today}
-          />
+          <NextTripText trip={nextTrip} today={today} />
         </Link>
       )}
 
@@ -237,5 +244,20 @@ function Countdown({
       </span>
       <span className="text-sm">von {daysBetween(start, end) + 1}</span>
     </p>
+  );
+}
+
+function NextTripText({ trip, today }: { trip: TripSummary; today: string }) {
+  return (
+    <>
+      <p className="text-sm opacity-85">Nächste Reise</p>
+      <p className="mt-0.5 text-xl leading-snug font-bold tracking-tight">
+        {trip.title}
+      </p>
+      <p className="mt-1 text-sm opacity-90">
+        {formatDateRange(trip.start_date, trip.end_date)}
+      </p>
+      <Countdown start={trip.start_date} end={trip.end_date} today={today} />
+    </>
   );
 }

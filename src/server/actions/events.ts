@@ -15,6 +15,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { ensureTripFolder } from "@/server/documents/folders";
 import { generatePackingList } from "@/server/packing/generate";
+import { refreshCityCover } from "@/server/trips/cover";
 import { calendarFor, loadHolidays, loadPersons } from "@/server/planner/data";
 
 const SAVE_ERROR = "Speichern hat nicht geklappt. Bitte nochmal versuchen.";
@@ -240,7 +241,9 @@ export async function createTripFromEvent(
   const supabase = await createClient();
   const { data: event } = await supabase
     .from("event")
-    .select("title, start_date, end_date, trip_id, event_person(person_id)")
+    .select(
+      "title, start_date, end_date, trip_id, place_id, event_person(person_id)",
+    )
     .eq("id", id.data)
     .eq("household_id", me.householdId)
     .single();
@@ -257,6 +260,8 @@ export async function createTripFromEvent(
       mode: mode.data,
       status: "planned",
       created_by: me.personId,
+      // Ort des Termins wird Reiseziel (Stadtbild).
+      destination_place_id: event.place_id,
     })
     .select("id")
     .single();
@@ -283,6 +288,7 @@ export async function createTripFromEvent(
   if (linkError) return fail(SAVE_ERROR);
   await ensureTripFolder(supabase, me.householdId, trip.id);
   await generatePackingList(supabase, me.householdId, trip.id);
+  await refreshCityCover(supabase, me.householdId, trip.id);
 
   refresh();
   return ok("Reise angelegt.");

@@ -15,6 +15,10 @@ export const tripSchema = z
       error: "Status wählen.",
     }),
     notes: z.preprocess(emptyToNull, z.string().trim().max(2000).nullable()),
+    destination_name: z.preprocess(
+      emptyToNull,
+      z.string().trim().max(200).nullable(),
+    ),
     activities: z.array(z.enum(ACTIVITIES)),
     climate: z.array(z.enum(CLIMATES)),
     international: z.boolean(),
@@ -40,6 +44,7 @@ export function parseTripForm(formData: FormData) {
     mode: formData.get("mode"),
     status: formData.get("status"),
     notes: formData.get("notes") ?? "",
+    destination_name: formData.get("destination_name") ?? "",
     activities: formData.getAll("activities"),
     climate: formData.getAll("climate"),
     international: formData.get("international") === "on",

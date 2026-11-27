@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Printer } from "lucide-react";
 
 import { ActionForm } from "@/components/forms/action-form";
+import { CoverEditor } from "@/components/reisen/cover-editor";
 import { TripFields } from "@/components/reisen/trip-fields";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -85,6 +86,10 @@ export default async function TripDetailsPage({
 
       {me.isParent && (
         <>
+          <Card>
+            <h2 className="mb-3 font-semibold">Reisebild</h2>
+            <CoverEditor tripId={trip.id} cover={trip.cover} />
+          </Card>
           <Card>
             <h2 className="mb-3 font-semibold">Reise bearbeiten</h2>
             <ActionForm

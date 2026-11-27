@@ -6,10 +6,13 @@ import { z } from "zod";
 
 import { requireParent } from "@/lib/auth";
 import { fail, ok, zodMessage, type FormState } from "@/lib/form-state";
+import { parsePlaceGeo } from "@/lib/schemas/day-item";
 import { parseTripForm } from "@/lib/schemas/trip";
 import { createClient } from "@/lib/supabase/server";
 import { ensureTripFolder } from "@/server/documents/folders";
 import { generatePackingList } from "@/server/packing/generate";
+import { placeIdFor } from "@/server/places";
+import { refreshCityCover } from "@/server/trips/cover";
 
 const SAVE_ERROR = "Speichern hat nicht geklappt. Bitte nochmal versuchen.";
 const uuid = z.uuid();
@@ -22,12 +25,21 @@ export async function saveTrip(
   const me = await requireParent();
   const parsed = parseTripForm(formData);
   if (!parsed.success) return fail(zodMessage(parsed.error));
-  const { person_ids, planner_ids, ...fields } = parsed.data;
+  const { person_ids, planner_ids, destination_name, ...rest } = parsed.data;
   const rawId = formData.get("id");
   const id = rawId ? uuid.safeParse(rawId) : null;
   if (id && !id.success) return fail("Reise nicht gefunden.");
 
   const supabase = await createClient();
+  const fields = {
+    ...rest,
+    destination_place_id: await placeIdFor(
+      supabase,
+      me.householdId,
+      destination_name,
+      parsePlaceGeo(formData, "destination"),
+    ),
+  };
   const { data: persons } = await supabase
     .from("person")
     .select("id")
@@ -98,6 +110,9 @@ export async function saveTrip(
     await ensureTripFolder(supabase, me.householdId, tripId);
     await generatePackingList(supabase, me.householdId, tripId);
   }
+  // Stadtbild zum Reiseziel (nur wenn kein eigenes Bild und sich das Ziel geändert hat).
+  // Ist Wikipedia nicht erreichbar, bleibt die Reise trotzdem gespeichert.
+  await refreshCityCover(supabase, me.householdId, tripId);
 
   revalidatePath("/", "layout");
   if (!id) redirect(`/reisen/${tripId}/plan`);
@@ -120,4 +135,35 @@ export async function deleteTrip(
   if (error) return fail(SAVE_ERROR);
   revalidatePath("/", "layout");
   redirect("/reisen");
+}
+
+// Reisebild: zurück zum Stadtbild (neu suchen) oder ganz ohne Bild.
+export async function setTripCover(
+  _: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const me = await requireParent();
+  const id = uuid.safeParse(formData.get("id"));
+  const mode = z.enum(["auto", "none"]).safeParse(formData.get("cover"));
+  if (!id.success || !mode.success) return fail("Reise nicht gefunden.");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trip")
+    .update({ cover_mode: mode.data })
+    .eq("id", id.data)
+    .eq("household_id", me.householdId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return fail(SAVE_ERROR);
+  revalidatePath("/", "layout");
+  if (mode.data === "none") return ok("Bild entfernt.");
+  const result = await refreshCityCover(supabase, me.householdId, data.id, {
+    force: true,
+  });
+  if (!result.ok) return fail(result.message);
+  return result.found
+    ? ok("Stadtbild gefunden.")
+    : fail(
+        "Kein passendes Foto gefunden. Reiseziel eintragen oder ein eigenes Bild hochladen.",
+      );
 }
