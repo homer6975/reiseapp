@@ -8,6 +8,7 @@ import { fail, ok, zodMessage, type FormState } from "@/lib/form-state";
 import { placeAt, STEP } from "@/lib/ordering";
 import { parseDayItemForm, parsePlaceGeo } from "@/lib/schemas/day-item";
 import { createClient } from "@/lib/supabase/server";
+import { syncDriveExpense } from "@/server/costs/drive-expense";
 import { placeIdFor } from "@/server/places";
 
 const SAVE_ERROR = "Speichern hat nicht geklappt. Bitte nochmal versuchen.";
@@ -75,6 +76,7 @@ export async function saveDayItem(
     parsePlaceGeo(formData, "end_place"),
   );
 
+  let itemId: string;
   if (id) {
     const { data: current } = await supabase
       .from("day_item")
@@ -92,18 +94,32 @@ export async function saveDayItem(
       .update({ ...row, place_id, end_place_id, position })
       .eq("id", id.data);
     if (error) return fail(SAVE_ERROR);
+    itemId = id.data;
   } else {
     const position = (await lastPosition(supabase, trip.id, row.day)) + STEP;
-    const { error } = await supabase.from("day_item").insert({
-      ...row,
-      place_id,
-      end_place_id,
-      position,
-      trip_id: trip.id,
-      created_by: me.personId,
-    });
-    if (error) return fail(SAVE_ERROR);
+    const { data: created, error } = await supabase
+      .from("day_item")
+      .insert({
+        ...row,
+        place_id,
+        end_place_id,
+        position,
+        trip_id: trip.id,
+        created_by: me.personId,
+      })
+      .select("id")
+      .single();
+    if (error || !created) return fail(SAVE_ERROR);
+    itemId = created.id;
   }
+  // Fahrtkosten als geplante Transport-Ausgabe (nur Eltern, RLS).
+  await syncDriveExpense(supabase, {
+    householdId: me.householdId,
+    tripId: trip.id,
+    tripStart: trip.start_date,
+    itemId,
+    row,
+  });
   revalidatePath(`/reisen/${trip.id}`, "layout");
   return ok("Gespeichert.");
 }
@@ -119,6 +135,13 @@ export async function deleteDayItem(
   const supabase = await createClient();
   const trip = await loadTrip(supabase, me, tripId.data);
   if (!trip) return fail("Reise nicht gefunden.");
+  // Automatische Fahrtkosten gehen mit der Fahrt; selbst gepflegte Ausgaben bleiben.
+  await supabase
+    .from("expense")
+    .delete()
+    .eq("trip_id", trip.id)
+    .eq("day_item_id", id.data)
+    .eq("auto_source", "drive");
   const { error } = await supabase
     .from("day_item")
     .delete()

@@ -146,11 +146,21 @@ test("Fahrt: Abfahrt aus gewünschter Ankunft je Auto mit Kosten", async ({
   await expect(dialog.getByText("12 km, reine Fahrzeit 25 min")).toBeVisible();
   const card = dialog.getByRole("listitem").filter({ hasText: car });
   await expect(card).toContainText("Abfahrt 11:17");
-  await expect(card).toContainText("0,9 l, ca. 1,43 €");
+  await expect(card).toContainText("0,8 l, ca. 1,39 €");
   await card.getByRole("button", { name: "Übernehmen" }).click();
   await expect(dialog.getByLabel("Abfahrt/Abflug")).toHaveValue("11:17");
   await dialog.getByRole("button", { name: "Eintragen" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByText(`Camping Lazise → Gardaland`)).toBeVisible();
   await expect(page.getByText(car).first()).toBeVisible();
+
+  // Geschätzte Fahrtkosten landen automatisch als geplante Transport-Ausgabe
+  await page.getByRole("link", { name: "Kosten" }).click();
+  await expect(page).toHaveURL(/\/kosten$/);
+  const expense = page
+    .getByRole("listitem")
+    .filter({ hasText: `Hinfahrt, ${car} (geschätzt)` });
+  await expect(expense).toContainText("Transport");
+  await expect(expense).toContainText("geplant");
+  await expect(expense).toContainText("1,39 €");
 });

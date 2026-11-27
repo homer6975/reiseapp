@@ -545,6 +545,7 @@ export type Database = {
         Row: {
           amount: number;
           amount_home: number | null;
+          auto_source: string | null;
           category: Database["public"]["Enums"]["expense_category"];
           created_at: string;
           currency: string;
@@ -564,6 +565,7 @@ export type Database = {
         Insert: {
           amount: number;
           amount_home?: never;
+          auto_source?: string | null;
           category: Database["public"]["Enums"]["expense_category"];
           created_at?: string;
           currency: string;
@@ -582,6 +584,7 @@ export type Database = {
         Update: {
           amount?: number;
           amount_home?: never;
+          auto_source?: string | null;
           category?: Database["public"]["Enums"]["expense_category"];
           created_at?: string;
           currency?: string;
