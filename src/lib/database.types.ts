@@ -1174,8 +1174,15 @@ export type Database = {
           activities: string[];
           caravan_id: string | null;
           climate: string[];
+          cover_credit: string | null;
+          cover_credit_url: string | null;
+          cover_image_url: string | null;
+          cover_kdrive_file_id: string | null;
+          cover_mode: string;
+          cover_query: string | null;
           created_at: string;
           created_by: string | null;
+          destination_place_id: string | null;
           end_date: string;
           household_id: string;
           id: string;
@@ -1194,8 +1201,15 @@ export type Database = {
           activities?: string[];
           caravan_id?: string | null;
           climate?: string[];
+          cover_credit?: string | null;
+          cover_credit_url?: string | null;
+          cover_image_url?: string | null;
+          cover_kdrive_file_id?: string | null;
+          cover_mode?: string;
+          cover_query?: string | null;
           created_at?: string;
           created_by?: string | null;
+          destination_place_id?: string | null;
           end_date: string;
           household_id: string;
           id?: string;
@@ -1213,8 +1227,15 @@ export type Database = {
           activities?: string[];
           caravan_id?: string | null;
           climate?: string[];
+          cover_credit?: string | null;
+          cover_credit_url?: string | null;
+          cover_image_url?: string | null;
+          cover_kdrive_file_id?: string | null;
+          cover_mode?: string;
+          cover_query?: string | null;
           created_at?: string;
           created_by?: string | null;
+          destination_place_id?: string | null;
           end_date?: string;
           household_id?: string;
           id?: string;
@@ -1241,6 +1262,13 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "person";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "trip_destination_place_id_fkey";
+            columns: ["destination_place_id"];
+            isOneToOne: false;
+            referencedRelation: "place";
             referencedColumns: ["id"];
           },
           {

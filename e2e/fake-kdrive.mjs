@@ -1,4 +1,4 @@
-// Minimaler Fake der kDrive- und Frankfurter-API für E2E-Tests (nur die Endpunkte aus src/server/integrations/kdrive.ts).
+// Minimaler Fake der kDrive-, Frankfurter- und Wikimedia-API für E2E-Tests (nur die Endpunkte aus src/server/integrations/kdrive.ts).
 import { createServer } from "node:http";
 
 const port = Number(process.env.FAKE_KDRIVE_PORT ?? 3199);
@@ -31,10 +31,67 @@ async function body(req) {
   return Buffer.concat(chunks);
 }
 
+// 2×2 px korallfarbenes PNG als Stadtfoto
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4n+ULRAwQCgAyvgbZx5/ffQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+// Fake-Wikipedia/Wikidata/Commons fürs Stadtbild: nur „Kopenhagen“ hat ein Foto.
+function wikimedia(res, p, url) {
+  const q = url.searchParams;
+  if (p === "/wikipedia") {
+    if (q.get("generator") === "search")
+      return json(res, 200, { query: { pages: [] } });
+    const title = q.get("titles");
+    return json(res, 200, {
+      query: {
+        pages: [
+          title === "Kopenhagen"
+            ? {
+                title,
+                pageimage: "Wappen_Kopenhagen.svg",
+                pageprops: { wikibase_item: "Q1748" },
+              }
+            : { title, missing: true },
+        ],
+      },
+    });
+  }
+  if (p === "/wikidata")
+    return json(res, 200, {
+      claims: { P18: [{ mainsnak: { datavalue: { value: "Nyhavn.png" } } }] },
+    });
+  if (p === "/commons")
+    return json(res, 200, {
+      query: {
+        pages: [
+          {
+            imageinfo: [
+              {
+                thumburl: `http://127.0.0.1:${port}/upload/nyhavn.png`,
+                descriptionurl:
+                  "https://commons.wikimedia.org/wiki/File:Nyhavn.png",
+                extmetadata: {
+                  Artist: { value: '<a href="#">Jane Doe</a>' },
+                  LicenseShortName: { value: "CC BY-SA 4.0" },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+  res.writeHead(200, { "Content-Type": "image/png" });
+  return res.end(PNG);
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${port}`);
   const p = url.pathname;
   let m;
+  if (["/wikipedia", "/wikidata", "/commons", "/upload/nyhavn.png"].includes(p))
+    return wikimedia(res, p, url);
   if (p === "/__files") return ok(res, [...files.values()]);
   // Kartenstil ohne Kacheln (OpenFreeMap ist aus der Testumgebung nicht erreichbar)
   if (p === "/style.json")

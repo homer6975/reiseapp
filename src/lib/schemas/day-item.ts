@@ -304,7 +304,7 @@ const placeGeoSchema = z.object({
 /** Koordinaten aus der Ortssuche (KA-03); fehlen sie, bleibt der Ort ohne Koordinaten. */
 export function parsePlaceGeo(
   formData: FormData,
-  prefix: "place" | "end_place" = "place",
+  prefix: "place" | "end_place" | "destination" = "place",
 ): PlaceGeo | null {
   const lat = formData.get(`${prefix}_lat`);
   const lon = formData.get(`${prefix}_lon`);

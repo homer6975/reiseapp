@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ItemKind } from "@/lib/schemas/day-item";
 import type { TripStatus } from "@/lib/trip-labels";
+import { tripCover, type TripCover } from "@/lib/trip-cover";
 import { createClient } from "@/lib/supabase/server";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -13,10 +14,13 @@ export type TripSummary = {
   end_date: string;
   mode: "car" | "flight" | "caravan" | "mixed";
   status: TripStatus;
+  cover: TripCover;
 };
 
 export type TripDetail = TripSummary & {
   notes: string | null;
+  destinationName: string | null;
+  destinationGeo: PlaceGeo | null;
   activities: string[];
   climate: string[];
   international: boolean;
@@ -70,7 +74,25 @@ function geoOf(place: PlaceRow): PlaceGeo | null {
     : null;
 }
 
-const TRIP_FIELDS = "id, title, start_date, end_date, mode, status";
+const TRIP_FIELDS =
+  "id, title, start_date, end_date, mode, status, cover_mode, cover_kdrive_file_id, cover_image_url, cover_credit, cover_credit_url";
+
+type CoverRow = Parameters<typeof tripCover>[0];
+
+function summaryOf<T extends CoverRow & Omit<TripSummary, "cover">>(row: T) {
+  const cover = tripCover(row);
+  const copy: Record<string, unknown> = { ...row };
+  for (const key of COVER_COLUMNS) delete copy[key];
+  return { ...(copy as Omit<T, (typeof COVER_COLUMNS)[number]>), cover };
+}
+
+const COVER_COLUMNS = [
+  "cover_mode",
+  "cover_kdrive_file_id",
+  "cover_image_url",
+  "cover_credit",
+  "cover_credit_url",
+] as const;
 
 export async function loadTrips(
   supabase: Supabase,
@@ -81,7 +103,7 @@ export async function loadTrips(
     .select(TRIP_FIELDS)
     .eq("household_id", householdId)
     .order("start_date");
-  return data ?? [];
+  return (data ?? []).map(summaryOf);
 }
 
 export async function loadTrip(
@@ -92,15 +114,17 @@ export async function loadTrip(
   const { data } = await supabase
     .from("trip")
     .select(
-      `${TRIP_FIELDS}, notes, activities, climate, international, trip_member(person_id, role)`,
+      `${TRIP_FIELDS}, notes, activities, climate, international, trip_member(person_id, role), destination:place!trip_destination_place_id_fkey(name, lat, lon, country_code, external_id)`,
     )
     .eq("household_id", householdId)
     .eq("id", id)
     .maybeSingle();
   if (!data) return null;
-  const { trip_member, ...trip } = data;
+  const { trip_member, destination, ...trip } = data;
   return {
-    ...trip,
+    ...summaryOf(trip),
+    destinationName: destination?.name ?? null,
+    destinationGeo: geoOf(destination),
     members: trip_member.map((m) => ({ personId: m.person_id, role: m.role })),
   };
 }

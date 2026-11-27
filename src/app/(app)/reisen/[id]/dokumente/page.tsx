@@ -38,7 +38,7 @@ export default async function DocumentsPage({
 
   const { data: trip } = await supabase
     .from("trip")
-    .select("id, kdrive_folder_id")
+    .select("id, kdrive_folder_id, cover_kdrive_file_id")
     .eq("id", id)
     .eq("household_id", me.householdId)
     .maybeSingle();
@@ -87,6 +87,8 @@ export default async function DocumentsPage({
     }
   }
   const linked = new Set((links ?? []).map((l) => l.kdrive_file_id));
+  // Das Reisebild liegt auch im Reiseordner, ist aber kein Dokument.
+  if (trip.cover_kdrive_file_id) linked.add(trip.cover_kdrive_file_id);
   const unassigned = folderFiles.filter((f) => !linked.has(String(f.id)));
 
   const fehler = typeof query.fehler === "string" ? query.fehler : null;

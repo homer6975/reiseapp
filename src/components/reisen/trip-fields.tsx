@@ -1,4 +1,5 @@
 import { Field } from "@/components/forms/field";
+import { PlaceInput } from "@/components/reisen/plan/place-input";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { TRIP_MODES } from "@/lib/planner-labels";
@@ -28,6 +29,18 @@ export function TripFields({
             name="title"
             defaultValue={trip?.title}
             required
+          />
+        </Field>
+        <Field
+          label="Reiseziel"
+          htmlFor="trip-destination"
+          className="sm:col-span-2"
+        >
+          <PlaceInput
+            id="trip-destination"
+            prefix="destination"
+            defaultName={trip?.destinationName ?? ""}
+            defaultGeo={trip?.destinationGeo ?? null}
           />
         </Field>
         <Field label="Von" htmlFor="trip-start">

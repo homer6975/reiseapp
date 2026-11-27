@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { CoverThumb } from "@/components/reisen/trip-cover";
 import { Card } from "@/components/ui/card";
 import { getMe } from "@/lib/auth";
 import { todayInBerlin } from "@/lib/dates";
@@ -62,7 +63,8 @@ function TripGroup({ title, trips }: { title: string; trips: TripSummary[] }) {
           <li key={t.id}>
             <Link href={`/reisen/${t.id}/plan`} className="block">
               <Card className="flex items-center justify-between gap-3 hover:bg-accent">
-                <div>
+                {t.cover.src && <CoverThumb src={t.cover.src} />}
+                <div className="min-w-0 flex-1">
                   <p className="font-medium">{t.title}</p>
                   <p className="text-sm text-muted-foreground">
                     {formatDateRange(t.start_date, t.end_date)} ·{" "}

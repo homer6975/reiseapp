@@ -31,8 +31,8 @@ export function PlaceInput({
   id: string;
   defaultName: string;
   defaultGeo: Geo | null;
-  /** Feldnamen-Präfix: "place" (Ort bzw. Start) oder "end_place" (Ziel einer Fahrt). */
-  prefix?: "place" | "end_place";
+  /** Feldnamen-Präfix: "place" (Ort bzw. Start), "end_place" (Ziel einer Fahrt), "destination" (Reiseziel). */
+  prefix?: "place" | "end_place" | "destination";
   onChange?: (name: string, geo: Geo | null) => void;
 }) {
   const listId = useId();

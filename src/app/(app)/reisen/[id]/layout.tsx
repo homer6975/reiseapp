@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { z } from "zod";
 
+import { CoverImage } from "@/components/reisen/trip-cover";
 import { TripTabs } from "@/components/reisen/trip-tabs";
 import { getMe } from "@/lib/auth";
 import { formatDateRange } from "@/lib/format";
@@ -31,13 +32,29 @@ export default async function TripLayout({
         <ChevronLeft className="size-4" aria-hidden />
         Reisen
       </Link>
-      <div>
-        <h1 className="text-2xl font-semibold">{trip.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {formatDateRange(trip.start_date, trip.end_date)} ·{" "}
-          {TRIP_MODES[trip.mode]} · {TRIP_STATUS[trip.status]}
-        </p>
-      </div>
+      {trip.cover.src ? (
+        <CoverImage
+          cover={{ ...trip.cover, src: trip.cover.src }}
+          className="flex h-44 flex-col justify-end p-4 sm:h-56 sm:p-5"
+          priority
+        >
+          <h1 className="text-2xl font-bold tracking-tight drop-shadow-sm">
+            {trip.title}
+          </h1>
+          <p className="text-sm opacity-90">
+            {formatDateRange(trip.start_date, trip.end_date)} ·{" "}
+            {TRIP_MODES[trip.mode]} · {TRIP_STATUS[trip.status]}
+          </p>
+        </CoverImage>
+      ) : (
+        <div>
+          <h1 className="text-2xl font-semibold">{trip.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            {formatDateRange(trip.start_date, trip.end_date)} ·{" "}
+            {TRIP_MODES[trip.mode]} · {TRIP_STATUS[trip.status]}
+          </p>
+        </div>
+      )}
       <TripTabs tripId={trip.id} isParent={me.isParent} />
       {children}
     </section>
