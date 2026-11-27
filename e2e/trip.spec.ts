@@ -151,3 +151,19 @@ test("Kind kann keine Reise anlegen", async ({ page }) => {
   const res = await page.goto("/reisen/neu");
   expect(res?.status()).toBe(404);
 });
+
+test("Reise ohne Termin erscheint im Jahresplaner", async ({ page }) => {
+  const title = `Sommerreise ${Date.now().toString().slice(-6)}`;
+  await loginWithCode(page, TEST_PARENT.email);
+  await createTrip(page, title);
+
+  await page.goto("/jahr?jahr=2027&ansicht=jahr");
+  const grid = page.getByLabel("Jahresraster");
+  await expect(grid.getByRole("link", { name: title }).first()).toBeVisible();
+  await page.getByRole("heading", { name: "Reisen ohne Termin" }).waitFor();
+  await page
+    .getByRole("link", { name: new RegExp(title) })
+    .last()
+    .click();
+  await expect(page).toHaveURL(/\/reisen\/[0-9a-f-]{36}/);
+});
