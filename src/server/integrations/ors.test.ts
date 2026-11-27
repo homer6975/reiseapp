@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { directions, geocode, OrsError, routeHash } from "./ors";
+import {
+  directions,
+  geocode,
+  looksLikeAddress,
+  OrsError,
+  routeHash,
+} from "./ors";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status });
@@ -160,6 +166,73 @@ describe("ors", () => {
     expect(url).toContain("https://photon.komoot.io/api/?");
     expect(url).toContain("q=breda");
     expect(init.headers.Authorization).toBeUndefined();
+  });
+
+  it("asks Photon first for street addresses and names them by address", async () => {
+    fetchMock.mockResolvedValueOnce(
+      json({
+        features: [
+          {
+            geometry: { coordinates: [8.7071, 49.0368] },
+            properties: {
+              osm_type: "W",
+              osm_id: 9,
+              type: "house",
+              name: "Altes Rathaus",
+              street: "Marktplatz",
+              housenumber: "1",
+              postcode: "75015",
+              city: "Bretten",
+              state: "Baden-Württemberg",
+              country: "Deutschland",
+              countrycode: "DE",
+            },
+          },
+        ],
+      }),
+    );
+    const [r] = await geocode("Marktplatz 1 Bretten");
+    expect(r.name).toBe("Marktplatz 1, 75015 Bretten");
+    expect(r.label).toBe(
+      "Altes Rathaus, Marktplatz 1, 75015 Bretten, Baden-Württemberg, Deutschland",
+    );
+    expect(fetchMock.mock.calls[0][0]).toContain("photon.komoot.io");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("tries the other service when the first finds nothing", async () => {
+    fetchMock
+      .mockResolvedValueOnce(json({ features: [] }))
+      .mockResolvedValueOnce(
+        json({
+          features: [
+            {
+              geometry: { coordinates: [8.7, 49.03] },
+              properties: {
+                gid: "oa:1",
+                layer: "address",
+                label: "Pforzheimer Straße 10, Bretten, BW, Deutschland",
+                name: "Pforzheimer Straße 10",
+                street: "Pforzheimer Straße",
+                housenumber: "10",
+                postalcode: "75015",
+                locality: "Bretten",
+                country_code: "DE",
+              },
+            },
+          ],
+        }),
+      );
+    const [r] = await geocode("Pforzheimer Strasse 10, Bretten");
+    expect(r.name).toBe("Pforzheimer Straße 10, 75015 Bretten");
+    expect(fetchMock.mock.calls[1][0]).toContain("/pelias/v1/search?");
+  });
+
+  it("detects addresses with house numbers", () => {
+    expect(looksLikeAddress("Hauptstr. 5")).toBe(true);
+    expect(looksLikeAddress("Marktplatz 1a, Bretten")).toBe(true);
+    expect(looksLikeAddress("Paderborn")).toBe(false);
+    expect(looksLikeAddress("75015 Bretten")).toBe(false);
   });
 
   it("hashes profile and rounded coordinates", () => {

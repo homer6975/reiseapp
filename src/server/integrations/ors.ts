@@ -109,24 +109,43 @@ type PeliasFeature = {
     label?: string;
     name?: string;
     country_code?: string;
+    layer?: string;
+    street?: string;
+    housenumber?: string;
+    postalcode?: string;
+    locality?: string;
   };
 };
 
-/** Ortssuche (KA-03), optional auf ein Land (ISO-3166-Alpha-2) begrenzt. */
+/** Sieht der Suchtext nach Straße mit Hausnummer aus („Hauptstr. 5“, „Marktplatz 1a, Bretten“)? */
+export function looksLikeAddress(text: string): boolean {
+  return /\p{L}{3,}\.?\s+\d{1,4}\s?[a-zA-Z]?(?:\b|$)/u.test(text);
+}
+
+/**
+ * Ortssuche (KA-03), optional auf ein Land (ISO-3166-Alpha-2) begrenzt.
+ * Adressen mit Hausnummer gehen zuerst an Photon (findet Hausnummern und „strasse“
+ * zuverlässig), alles andere zuerst an Pelias. Liefert der erste Dienst nichts
+ * oder fällt aus, springt der andere ein.
+ */
 export async function geocode(
   text: string,
   opts: { country?: string | null; size?: number } = {},
 ): Promise<GeocodeResult[]> {
-  try {
-    return await peliasSearch(text, opts);
-  } catch (error) {
-    // Pelias weg oder Schlüssel abgelehnt: Ersatz versuchen, sonst ursprünglichen Fehler melden.
+  const order = looksLikeAddress(text)
+    ? [photonSearch, peliasSearch]
+    : [peliasSearch, photonSearch];
+  let firstError: unknown = null;
+  for (const search of order) {
     try {
-      return await photonSearch(text, opts);
-    } catch {
-      throw error;
+      const results = await search(text, opts);
+      if (results.length > 0) return results;
+    } catch (error) {
+      firstError ??= error;
     }
   }
+  if (firstError) throw firstError;
+  return [];
 }
 
 async function peliasSearch(
@@ -150,7 +169,15 @@ async function peliasSearch(
       {
         id: p.gid ?? p.id ?? `${lat},${lon}`,
         label: p.label ?? p.name ?? text,
-        name: p.name ?? p.label ?? text,
+        name:
+          p.layer === "address" && p.street && p.housenumber
+            ? [
+                `${p.street} ${p.housenumber}`,
+                [p.postalcode, p.locality].filter(Boolean).join(" "),
+              ]
+                .filter(Boolean)
+                .join(", ")
+            : (p.name ?? p.label ?? text),
         lat,
         lon,
         countryCode:
@@ -170,7 +197,10 @@ type PhotonFeature = {
     name?: string;
     street?: string;
     housenumber?: string;
+    postcode?: string;
     city?: string;
+    district?: string;
+    type?: string;
     state?: string;
     country?: string;
     countrycode?: string;
@@ -223,10 +253,20 @@ async function photonSearch(
           : null;
       if (wanted && cc !== wanted) return [];
       const street = [p.street, p.housenumber].filter(Boolean).join(" ");
-      const name = p.name ?? (street || p.city || text);
-      const parts = [name, street, p.city, p.state, p.country].filter(
-        (x): x is string => Boolean(x),
-      );
+      const town = [p.postcode, p.city ?? p.district].filter(Boolean).join(" ");
+      // Hausnummer gefunden: Adresse ist der Name (Gebäudenamen wie „Altes Rathaus“ nur im Label).
+      const name =
+        p.housenumber && street
+          ? [street, town].filter(Boolean).join(", ")
+          : (p.name ?? (street || p.city || text));
+      const parts = [
+        p.housenumber ? null : name,
+        p.housenumber && p.name ? p.name : null,
+        street,
+        town,
+        p.state,
+        p.country,
+      ].filter((x): x is string => Boolean(x));
       return [
         {
           id:
