@@ -170,16 +170,15 @@ export async function downloadFile(
       redirect: "manual",
     },
   );
-  // Weiterleitung auf den Speicher: nur https bei Infomaniak folgen, ohne Token.
+  // Weiterleitung auf den Speicher (live nicht unter *.infomaniak.com): nur https folgen,
+  // den Token nie mitschicken. Die Adresse stammt aus der authentifizierten API-Antwort.
   if (res.status >= 300 && res.status < 400) {
     const location = res.headers.get("location");
     const target = location ? new URL(location, baseUrl()) : null;
-    if (
-      !target ||
-      target.protocol !== "https:" ||
-      !/(^|\.)infomaniak\.com$/.test(target.hostname)
-    ) {
-      throw new KdriveError("Unerwartete Weiterleitung beim Download.");
+    if (!target || target.protocol !== "https:") {
+      throw new KdriveError(
+        `Unerwartete Weiterleitung beim Download (${target ? `${target.protocol}//${target.hostname}` : "ohne Ziel"}).`,
+      );
     }
     const redirected = await fetch(target, { cache: "no-store" });
     if (!redirected.ok)
