@@ -73,4 +73,21 @@ describe("Eintrag kopieren", () => {
       "2027-08-02T06:00:00.000Z",
     );
   });
+
+  it("nimmt das Datum aus der gespeicherten Startzeit (Umweg über Ideen)", () => {
+    // War am 30.07., liegt jetzt in der Ideen-Ablage, Zeit noch vom 30.07.
+    const item = {
+      ...base,
+      day: null,
+      start_at: localToUtc("2027-07-30", "14:00", "Europe/Berlin"),
+      end_at: localToUtc("2027-07-30", "16:00", "Europe/Berlin"),
+    };
+    const moved = shiftTimesToDay(item, "2027-08-01");
+    expect(moved.start_at).toBe(
+      localToUtc("2027-08-01", "14:00", "Europe/Berlin"),
+    );
+    expect(moved.end_at).toBe(
+      localToUtc("2027-08-01", "16:00", "Europe/Berlin"),
+    );
+  });
 });

@@ -100,6 +100,19 @@ test("Flug FRA→JFK zeigt beide Ortszeiten, Idee wandert auf einen Tag", async 
     day("Fr., 30.07.", page).getByText("FRA 10:05 → JFK 12:55 (Ortszeit)"),
   ).toBeVisible();
 
+  // Verschieben nimmt die Zeiten mit: Check-in steht danach einen Tag vor dem neuen Flugtag
+  await day("So., 01.08.", page)
+    .getByRole("button", { name: "Aktionen für Hinflug" })
+    .click();
+  await page.getByRole("menuitem", { name: "Sa., 31.07." }).click();
+  await expect(
+    day("Sa., 31.07.", page).getByText(/Check-in ab Fr\., 30\.07\., 10:05/),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    day("Sa., 31.07.", page).getByText(/Check-in ab Fr\., 30\.07\., 10:05/),
+  ).toBeVisible();
+
   // Nach dem Neuladen bleibt alles an seinem Platz
   await page.reload();
   await expect(

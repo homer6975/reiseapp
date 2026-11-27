@@ -1,5 +1,5 @@
-// Eintrag im Tagesplan auf einen anderen Tag kopieren (auch in eine andere Reise).
-// Uhrzeiten bleiben in Ortszeit gleich, nur das Datum wandert mit.
+// Eintrag im Tagesplan auf einen anderen Tag kopieren oder verschieben (Kopie auch in
+// eine andere Reise). Uhrzeiten bleiben in Ortszeit gleich, nur das Datum wandert mit.
 
 import type { Json } from "@/lib/database.types";
 
@@ -22,16 +22,20 @@ export function shiftLocal(iso: string, days: number, tz: string): string {
 }
 
 /**
- * Zeitfelder für die Kopie auf `toDay`. Ohne Quell- oder Zieltag (Ideen-Ablage)
- * bleiben die Zeiten, wie sie sind.
+ * Zeitfelder für `toDay` (Kopieren und Verschieben). Maßgeblich ist das gespeicherte
+ * Ortsdatum des Starts, damit auch ein Umweg über die Ideen-Ablage stimmt. Ohne Zieltag
+ * (Ideen-Ablage) oder ohne Zeiten bleibt alles, wie es ist.
  */
 export function shiftTimesToDay<T extends CopyableTimes>(
   item: T,
   toDay: string | null,
 ): Pick<T, "day" | "start_at" | "end_at" | "details"> {
-  const delta = item.day && toDay ? daysBetween(item.day, toDay) : 0;
   const tz = item.tz ?? DEFAULT_TZ;
   const endTz = item.end_tz ?? tz;
+  const anchor = item.start_at
+    ? localDate(item.start_at, tz)
+    : (item.day ?? (item.end_at ? localDate(item.end_at, endTz) : null));
+  const delta = anchor && toDay ? daysBetween(anchor, toDay) : 0;
   let details = item.details;
   if (
     delta !== 0 &&
