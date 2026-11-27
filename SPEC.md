@@ -288,7 +288,7 @@ CRON_SECRET=
 KDRIVE_TOKEN=
 KDRIVE_DRIVE_ID=
 ORS_API_KEY=
-NEXT_PUBLIC_MAP_STYLE_URL=        # Kachel-Style (§6.7)
+MAP_STYLE_URL=                    # Kachel-Style (§6.7), Server, leer = OpenFreeMap „liberty“
 APP_BASE_URL=
 # v2
 ANTHROPIC_API_KEY=

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { requireParent } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { NEUTRAL_COLOR } from "@/lib/utils";
 import {
   deletePerson,
   invitePerson,
@@ -92,7 +93,7 @@ function PersonFields({
           id={`${prefix}-color`}
           name="color"
           type="color"
-          defaultValue={person?.color ?? "#64748b"}
+          defaultValue={person?.color ?? NEUTRAL_COLOR}
           className="h-11 w-20 p-1"
         />
       </Field>

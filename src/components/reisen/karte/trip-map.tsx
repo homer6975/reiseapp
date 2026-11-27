@@ -9,6 +9,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { formatDayShort } from "@/lib/format";
 import { localTime } from "@/lib/timezone";
 import { ITEM_KINDS } from "@/lib/trip-labels";
+import { NEUTRAL_COLOR } from "@/lib/utils";
 import type { MapPoint } from "@/server/map/data";
 
 // Farbe je Reisetag (KA-01), kontrastreich auf hellem und dunklem Kartengrund.
@@ -22,7 +23,7 @@ const DAY_COLORS = [
   "#ca8a04",
   "#dc2626",
 ];
-const IDEA_COLOR = "#64748b";
+const IDEA_COLOR = NEUTRAL_COLOR;
 
 type LineString = { type: "LineString"; coordinates: [number, number][] };
 type RouteData =

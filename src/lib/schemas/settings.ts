@@ -1,8 +1,7 @@
 import { z } from "zod";
 
-// Hilfen für FormData: leere Felder werden zu null.
-const emptyToNull = (v: unknown) =>
-  typeof v === "string" && v.trim() === "" ? null : v;
+import { emptyToNull, isoDate } from "@/lib/schemas/common";
+
 const optionalNumber = (schema: z.ZodNumber) =>
   z.preprocess(
     (v) =>
@@ -45,8 +44,6 @@ export const personSchema = z.object({
 export const schoolSchema = z.object({
   name: requiredText("Name der Schule"),
 });
-
-const isoDate = z.iso.date("Datum ungültig.");
 
 export const schoolDayOffSchema = z
   .object({
