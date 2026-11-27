@@ -39,7 +39,8 @@ export async function refreshCityCover(
   let image;
   try {
     image = await findCityImage(terms);
-  } catch {
+  } catch (e) {
+    console.error("[wikimedia] Suche fehlgeschlagen", e);
     return {
       ok: false,
       message:

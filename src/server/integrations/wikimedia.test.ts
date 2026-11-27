@@ -173,4 +173,14 @@ describe("findCityImage", () => {
     );
     expect(await findCityImage(["X"])).toBeNull();
   });
+
+  it("treats MediaWiki errors sent with HTTP 200 as failures", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        json({ error: { code: "ratelimited", info: "Too many requests" } }),
+      ),
+    );
+    await expect(findCityImage(["Paderborn"])).rejects.toThrow(/ratelimited/);
+  });
 });

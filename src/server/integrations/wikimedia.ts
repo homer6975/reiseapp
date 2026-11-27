@@ -28,7 +28,8 @@ function urls() {
 }
 export const USER_AGENT =
   "FamilienTrips/1.0 (private, nicht-kommerzielle Familien-App)";
-export const COVER_WIDTH = 1600;
+// Wikimedia liefert nur noch Standardbreiten zuverlässig aus (u. a. 960, 1280, 1920).
+export const COVER_WIDTH = 1280;
 
 /** Nur Bilder von dort lädt die Bild-Route nach (im Test: vom Fake). */
 export function isWikimediaImage(raw: string): boolean {
@@ -69,8 +70,19 @@ async function api<T>(base: string, params: Record<string, string>) {
     cache: "no-store",
     signal: AbortSignal.timeout(8000),
   });
-  if (!res.ok) throw new Error(`Wikimedia HTTP ${res.status}`);
-  return (await res.json()) as T;
+  if (!res.ok) throw new Error(`Wikimedia HTTP ${res.status} (${base})`);
+  const body = (await res.json()) as T & {
+    error?: { code?: string; info?: string };
+    warnings?: unknown;
+  };
+  // Die MediaWiki-API meldet Fehler (z. B. Drosselung, ungültige Parameter) mit HTTP 200.
+  if (body.error)
+    throw new Error(
+      `Wikimedia ${body.error.code ?? "error"}: ${body.error.info ?? ""} (${base})`,
+    );
+  if (body.warnings)
+    console.warn("[wikimedia] warnings", base, JSON.stringify(body.warnings));
+  return body;
 }
 
 const PAGE_PROPS = {
@@ -222,7 +234,10 @@ export async function findCityImage(
 ): Promise<CityImage | null> {
   for (const term of terms) {
     const page = await findArticle(term);
-    if (!page) continue;
+    if (!page) {
+      console.info("[wikimedia] kein Artikel", { term });
+      continue;
+    }
     const candidates: string[] = [];
     const qid = page.pageprops?.wikibase_item;
     if (qid) {
@@ -235,6 +250,12 @@ export async function findCityImage(
       const image = await imageInfo(file);
       if (image) return image;
     }
+    console.info("[wikimedia] kein Foto", {
+      term,
+      article: page.title,
+      qid,
+      candidates,
+    });
   }
   return null;
 }
