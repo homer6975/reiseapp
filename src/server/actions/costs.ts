@@ -121,6 +121,8 @@ export async function saveExpense(
     amount: Number(fields.amount),
     fx_rate: Number(rate),
     fx_overridden,
+    // Selbst bearbeitet: die Fahrtplanung passt diese Ausgabe nicht mehr an.
+    auto_source: null,
   };
   const { error } = id
     ? await supabase
