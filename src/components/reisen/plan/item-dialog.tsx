@@ -2,8 +2,11 @@
 
 import { useState, type ReactNode } from "react";
 
+import { ArrowLeftRight, House } from "lucide-react";
+
 import { ActionForm } from "@/components/forms/action-form";
 import { Field } from "@/components/forms/field";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -19,9 +22,15 @@ import { ITEM_KINDS, TRANSPORT_MODES } from "@/lib/trip-labels";
 import { deleteDayItem, saveDayItem } from "@/server/actions/day-items";
 import type { PlanItem } from "@/server/trips/data";
 
+import { DrivePlanner, type AppliedDrive } from "./drive-planner";
 import { PlaceInput } from "./place-input";
 
 export type EditTarget = { item?: PlanItem; day: string | null } | null;
+
+type Geo = NonNullable<PlanItem["place"]>;
+type NamedPlace = { name: string; geo: Geo | null };
+/** Heimatadresse des Haushalts, Standard-Start einer neuen Fahrt. */
+export type HomePlace = { name: string; geo: Geo } | null;
 
 const ZONES =
   typeof Intl.supportedValuesOf === "function"
@@ -32,11 +41,13 @@ export function ItemDialog({
   tripId,
   days,
   target,
+  home,
   onClose,
 }: {
   tripId: string;
   days: string[];
   target: EditTarget;
+  home: HomePlace;
   onClose: () => void;
 }) {
   return (
@@ -50,6 +61,7 @@ export function ItemDialog({
             tripId={tripId}
             days={days}
             target={target}
+            home={home}
             onDone={onClose}
           />
         </DialogContent>
@@ -62,11 +74,13 @@ function ItemForm({
   tripId,
   days,
   target,
+  home,
   onDone,
 }: {
   tripId: string;
   days: string[];
   target: NonNullable<EditTarget>;
+  home: HomePlace;
   onDone: () => void;
 }) {
   const item = target.item;
@@ -80,9 +94,50 @@ function ItemForm({
   const multiDay = MULTI_DAY_KINDS.includes(kind);
   const travel = kind === "flight" || kind === "transport";
 
-  const startTime = item?.start_at ? localTime(item.start_at, startTz) : "";
-  const endDate = item?.end_at ? localDate(item.end_at, endTzInitial) : "";
-  const endTime = item?.end_at ? localTime(item.end_at, endTzInitial) : "";
+  const [day, setDay] = useState(item ? (item.day ?? "") : (target.day ?? ""));
+  const [startTime, setStartTime] = useState(
+    item?.start_at ? localTime(item.start_at, startTz) : "",
+  );
+  const [endDate, setEndDate] = useState(
+    item?.end_at ? localDate(item.end_at, endTzInitial) : "",
+  );
+  const [endTime, setEndTime] = useState(
+    item?.end_at ? localTime(item.end_at, endTzInitial) : "",
+  );
+  const [mode, setMode] = useState(s("mode") || "car");
+  const driving = kind === "transport" && (mode === "car" || mode === "rental");
+
+  // Fahrt: Start (place) und Ziel (end_place). Neue Fahrten starten zu Hause.
+  const [from, setFrom] = useState<NamedPlace>(
+    item
+      ? { name: item.placeName ?? "", geo: item.place }
+      : { name: home?.name ?? "", geo: home?.geo ?? null },
+  );
+  const [to, setTo] = useState<NamedPlace>({
+    name: item?.endPlaceName ?? "",
+    geo: item?.endPlace ?? null,
+  });
+  // Erhöhen erzwingt neue Vorbelegung der Ortsfelder (Tauschen, „Zuhause“).
+  const [placeKey, setPlaceKey] = useState(0);
+  const [drive, setDrive] = useState({
+    vehicle: s("vehicle"),
+    distanceKm: typeof d.distanceKm === "number" ? String(d.distanceKm) : "",
+    driveMin: typeof d.driveMin === "number" ? String(d.driveMin) : "",
+  });
+
+  function applyDrive({ plan, departureDate, departureTime }: AppliedDrive) {
+    const arrival = endDate || day;
+    setStartTime(departureTime);
+    if (departureDate !== day && days.includes(departureDate)) {
+      setDay(departureDate);
+    }
+    setEndDate(arrival);
+    setDrive({
+      vehicle: plan.vehicleName,
+      distanceKm: String(plan.distanceKm),
+      driveMin: String(plan.driveMin),
+    });
+  }
 
   const text = (name: string, label: string, props = {}) => (
     <Field label={label} htmlFor={`f-${name}`}>
@@ -175,7 +230,8 @@ function ItemForm({
             <NativeSelect
               id="f-mode"
               name="d_mode"
-              defaultValue={s("mode") || "car"}
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
             >
               {Object.entries(TRANSPORT_MODES).map(([v, l]) => (
                 <option key={v} value={v}>
@@ -185,8 +241,79 @@ function ItemForm({
             </NativeSelect>
           </Field>
           {text("provider", "Anbieter")}
-          {text("pickup", "Abholung/Abfahrt")}
-          {text("dropoff", "Rückgabe/Ankunft")}
+          {(mode !== "car" || s("pickup") || s("dropoff")) && (
+            <>
+              {text("pickup", "Abholung/Abfahrt")}
+              {text("dropoff", "Rückgabe/Ankunft")}
+            </>
+          )}
+          <Field label="Start" htmlFor="f-place">
+            <PlaceInput
+              key={`from-${placeKey}`}
+              id="f-place"
+              defaultName={from.name}
+              defaultGeo={from.geo}
+              onChange={(name, geo) => setFrom({ name, geo })}
+            />
+          </Field>
+          <Field label="Ziel" htmlFor="f-end-place">
+            <PlaceInput
+              key={`to-${placeKey}`}
+              id="f-end-place"
+              prefix="end_place"
+              defaultName={to.name}
+              defaultGeo={to.geo}
+              onChange={(name, geo) => setTo({ name, geo })}
+            />
+          </Field>
+          <div className="flex flex-wrap gap-2 sm:col-span-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setFrom(to);
+                setTo(from);
+                setPlaceKey((k) => k + 1);
+              }}
+            >
+              <ArrowLeftRight aria-hidden /> Start und Ziel tauschen
+            </Button>
+            {home && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setTo({ name: home.name, geo: home.geo });
+                  setPlaceKey((k) => k + 1);
+                }}
+              >
+                <House aria-hidden /> Nach Hause
+              </Button>
+            )}
+          </div>
+          {driving && (
+            <>
+              <DrivePlanner
+                from={from.geo}
+                to={to.geo}
+                arrivalDate={endDate || day || null}
+                arrivalTime={endTime}
+                tz={tz}
+                endTz={endTz}
+                selected={drive.vehicle || null}
+                onApply={applyDrive}
+              />
+              <input type="hidden" name="d_vehicle" value={drive.vehicle} />
+              <input
+                type="hidden"
+                name="d_distanceKm"
+                value={drive.distanceKm}
+              />
+              <input type="hidden" name="d_driveMin" value={drive.driveMin} />
+            </>
+          )}
         </>
       );
       break;
@@ -282,7 +409,8 @@ function ItemForm({
             <NativeSelect
               id="f-day"
               name="day"
-              defaultValue={item ? (item.day ?? "") : (target.day ?? "")}
+              value={day}
+              onChange={(e) => setDay(e.target.value)}
             >
               <option value="">Ideen-Ablage</option>
               {days.map((day) => (
@@ -309,7 +437,8 @@ function ItemForm({
                 id="f-start"
                 name="start_time"
                 type="time"
-                defaultValue={startTime}
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
               />
             </Field>
           )}
@@ -328,7 +457,8 @@ function ItemForm({
                 id="f-end-date"
                 name="end_date"
                 type="date"
-                defaultValue={endDate}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
               />
             </Field>
           )}
@@ -338,7 +468,8 @@ function ItemForm({
                 id="f-end"
                 name="end_time"
                 type="time"
-                defaultValue={endTime}
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
               />
             </Field>
           )}
@@ -354,13 +485,15 @@ function ItemForm({
             </Field>
           )}
           {specific}
-          <Field label="Ort" htmlFor="f-place">
-            <PlaceInput
-              id="f-place"
-              defaultName={item?.placeName ?? ""}
-              defaultGeo={item?.place ?? null}
-            />
-          </Field>
+          {kind !== "transport" && (
+            <Field label="Ort" htmlFor="f-place">
+              <PlaceInput
+                id="f-place"
+                defaultName={item?.placeName ?? ""}
+                defaultGeo={item?.place ?? null}
+              />
+            </Field>
+          )}
           <Field label="Buchungsnummer" htmlFor="f-booking">
             <Input
               id="f-booking"

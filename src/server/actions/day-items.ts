@@ -6,12 +6,9 @@ import { z } from "zod";
 import { requireParent, type Me } from "@/lib/auth";
 import { fail, ok, zodMessage, type FormState } from "@/lib/form-state";
 import { placeAt, STEP } from "@/lib/ordering";
-import {
-  parseDayItemForm,
-  parsePlaceGeo,
-  type PlaceGeo,
-} from "@/lib/schemas/day-item";
+import { parseDayItemForm, parsePlaceGeo } from "@/lib/schemas/day-item";
 import { createClient } from "@/lib/supabase/server";
+import { placeIdFor } from "@/server/places";
 
 const SAVE_ERROR = "Speichern hat nicht geklappt. Bitte nochmal versuchen.";
 const uuid = z.uuid();
@@ -44,47 +41,6 @@ async function lastPosition(
   return data?.[0]?.position ?? 0;
 }
 
-/**
- * Ort wiederverwenden oder anlegen. Mit Koordinaten aus der Ortssuche (KA-03)
- * über die Geocoder-ID, sonst per Name.
- */
-async function placeIdFor(
-  supabase: Supabase,
-  householdId: string,
-  name: string | null,
-  geo: PlaceGeo | null,
-) {
-  if (!name) return null;
-  const query = supabase
-    .from("place")
-    .select("id")
-    .eq("household_id", householdId)
-    .eq("name", name);
-  const { data: existing } = await (
-    geo
-      ? geo.externalId
-        ? query.eq("external_id", geo.externalId)
-        : query.eq("lat", geo.lat).eq("lon", geo.lon)
-      : query.is("lat", null)
-  ).limit(1);
-  if (existing?.[0]) return existing[0].id;
-  const { data } = await supabase
-    .from("place")
-    .insert({
-      household_id: householdId,
-      name,
-      ...(geo && {
-        lat: geo.lat,
-        lon: geo.lon,
-        country_code: geo.countryCode,
-        external_id: geo.externalId,
-      }),
-    })
-    .select("id")
-    .single();
-  return data?.id ?? null;
-}
-
 // Eintrag im Tagesplan anlegen oder ändern (RP-01..03, RP-05).
 export async function saveDayItem(
   _: FormState,
@@ -98,7 +54,7 @@ export async function saveDayItem(
   if (id && !id.success) return fail("Eintrag nicht gefunden.");
   const parsed = parseDayItemForm(formData);
   if (!parsed.success) return fail(zodMessage(parsed.error));
-  const { row, placeName } = parsed.data;
+  const { row, placeName, endPlaceName } = parsed.data;
 
   const supabase = await createClient();
   const trip = await loadTrip(supabase, me, tripId.data);
@@ -111,6 +67,12 @@ export async function saveDayItem(
     me.householdId,
     placeName,
     parsePlaceGeo(formData),
+  );
+  const end_place_id = await placeIdFor(
+    supabase,
+    me.householdId,
+    endPlaceName,
+    parsePlaceGeo(formData, "end_place"),
   );
 
   if (id) {
@@ -127,7 +89,7 @@ export async function saveDayItem(
         : (await lastPosition(supabase, trip.id, row.day)) + STEP;
     const { error } = await supabase
       .from("day_item")
-      .update({ ...row, place_id, position })
+      .update({ ...row, place_id, end_place_id, position })
       .eq("id", id.data);
     if (error) return fail(SAVE_ERROR);
   } else {
@@ -135,6 +97,7 @@ export async function saveDayItem(
     const { error } = await supabase.from("day_item").insert({
       ...row,
       place_id,
+      end_place_id,
       position,
       trip_id: trip.id,
       created_by: me.personId,

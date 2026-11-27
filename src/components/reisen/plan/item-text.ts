@@ -1,4 +1,5 @@
 import { addDays, daysBetween } from "@/lib/dates";
+import { formatDuration } from "@/lib/drive-plan";
 import { MULTI_DAY_KINDS } from "@/lib/schemas/day-item";
 import { formatDayShort } from "@/lib/format";
 import { DEFAULT_TZ, flightTimes, localDate, localTime } from "@/lib/timezone";
@@ -77,6 +78,14 @@ export function detailText(item: PlanItem): string | null {
         str(d.provider),
         str(d.pickup) && `ab ${d.pickup}`,
         str(d.dropoff) && `bis ${d.dropoff}`,
+        item.placeName && item.endPlaceName
+          ? `${item.placeName} → ${item.endPlaceName}`
+          : undefined,
+        typeof d.distanceKm === "number" ? `${d.distanceKm} km` : undefined,
+        typeof d.driveMin === "number"
+          ? `${formatDuration(d.driveMin)} Fahrzeit`
+          : undefined,
+        str(d.vehicle),
       );
       break;
     case "lodging":

@@ -19,6 +19,11 @@ const hhmm = z.preprocess(
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Uhrzeit ungültig.")
     .optional(),
 );
+const optionalInt = (min: number, max: number) =>
+  z.preprocess(
+    (v) => (v === "" || v == null ? undefined : Number(v)),
+    z.number().int().min(min).max(max).optional(),
+  );
 const checkbox = z.preprocess((v) => v === "on" || v === true, z.boolean());
 const iata = z.preprocess(
   (v) => (typeof v === "string" ? v.trim().toUpperCase() || undefined : v),
@@ -54,6 +59,11 @@ export const detailsSchemas = {
     provider: text(),
     pickup: text(),
     dropoff: text(),
+    // Fahrtplanung (Auto): gewähltes Auto, Strecke und reine Fahrzeit. Keine Kosten,
+    // denn day_item ist auch für Kinder lesbar.
+    vehicle: text(80),
+    distanceKm: optionalInt(0, 20000),
+    driveMin: optionalInt(0, 10000),
   }),
   lodging: z.object({
     checkIn: hhmm,
@@ -97,7 +107,15 @@ const DETAIL_FIELDS: Record<ItemKind, string[]> = {
     "seats",
     "baggage",
   ],
-  transport: ["mode", "provider", "pickup", "dropoff"],
+  transport: [
+    "mode",
+    "provider",
+    "pickup",
+    "dropoff",
+    "vehicle",
+    "distanceKm",
+    "driveMin",
+  ],
   lodging: ["checkIn", "checkOut", "phone", "breakfast"],
   campsite: ["pitch", "checkIn", "checkOut", "phone"],
   game: ["opponent", "field", "team", "uniform", "arrivalBefore"],
@@ -140,6 +158,10 @@ const baseSchema = z.object({
     z.url({ protocol: /^https?$/, error: "Link ungültig." }).nullable(),
   ),
   place_name: z.preprocess(emptyToNull, z.string().trim().max(200).nullable()),
+  end_place_name: z.preprocess(
+    emptyToNull,
+    z.string().trim().max(200).nullable(),
+  ),
 });
 
 export type DayItemRow = {
@@ -157,10 +179,15 @@ export type DayItemRow = {
 };
 
 /** Formular → Zeile für day_item (ohne trip_id/position) plus Ortsname. */
-export function parseDayItemForm(
-  formData: FormData,
-):
-  | { success: true; data: { row: DayItemRow; placeName: string | null } }
+export function parseDayItemForm(formData: FormData):
+  | {
+      success: true;
+      data: {
+        row: DayItemRow;
+        placeName: string | null;
+        endPlaceName: string | null;
+      };
+    }
   | { success: false; error: z.ZodError } {
   const base = baseSchema.safeParse(Object.fromEntries(formData));
   if (!base.success) return base;
@@ -245,6 +272,8 @@ export function parseDayItemForm(
         details: details.data as DayItemRow["details"],
       },
       placeName: b.place_name,
+      // Ziel nur bei Fahrten (Start = Ort, Ziel = end_place).
+      endPlaceName: b.kind === "transport" ? b.end_place_name : null,
     },
   };
 }
@@ -268,15 +297,18 @@ const placeGeoSchema = z.object({
 });
 
 /** Koordinaten aus der Ortssuche (KA-03); fehlen sie, bleibt der Ort ohne Koordinaten. */
-export function parsePlaceGeo(formData: FormData): PlaceGeo | null {
-  const lat = formData.get("place_lat");
-  const lon = formData.get("place_lon");
+export function parsePlaceGeo(
+  formData: FormData,
+  prefix: "place" | "end_place" = "place",
+): PlaceGeo | null {
+  const lat = formData.get(`${prefix}_lat`);
+  const lon = formData.get(`${prefix}_lon`);
   if (!lat || !lon) return null;
   const parsed = placeGeoSchema.safeParse({
     lat,
     lon,
-    countryCode: formData.get("place_country") || null,
-    externalId: formData.get("place_external_id") || null,
+    countryCode: formData.get(`${prefix}_country`) || null,
+    externalId: formData.get(`${prefix}_external_id`) || null,
   });
   return parsed.success ? parsed.data : null;
 }

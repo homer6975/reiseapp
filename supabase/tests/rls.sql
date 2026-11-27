@@ -9,6 +9,7 @@ insert into person(id,household_id,display_name,kind,user_id) values
  ('33333333-3333-3333-3333-33333333333b','11111111-1111-1111-1111-111111111111','Kind','child','00000000-0000-0000-0000-00000000000b');
 insert into trip(id,household_id,title,start_date,end_date) values ('22222222-2222-2222-2222-222222222222','11111111-1111-1111-1111-111111111111','T','2027-05-01','2027-05-03');
 insert into expense(trip_id,title,amount,currency,fx_rate,spent_on,category) values ('22222222-2222-2222-2222-222222222222','Hotel',100,'USD',0.9,'2027-05-01','lodging');
+insert into energy_price(household_id,diesel_eur_l) values ('11111111-1111-1111-1111-111111111111',1.659);
 insert into packing_item(trip_id,name,category) values ('22222222-2222-2222-2222-222222222222','Handschuh','Baseball');
 insert into packing_item(trip_id,person_id,name,category) values ('22222222-2222-2222-2222-222222222222','33333333-3333-3333-3333-33333333333a','Laptop','Basis');
 insert into document_link(household_id,trip_id,type,title,kdrive_file_id) values ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222','insurance','Police','1');
@@ -27,12 +28,14 @@ insert into vote(poll_option_id,person_id,value) values ('66666666-6666-6666-666
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
 do $$ begin assert (select count(*) from expense) = 1, 'parent must see expense'; end $$;
+do $$ begin assert (select count(*) from energy_price) = 1, 'parent must see energy prices'; end $$;
 do $$ begin assert (select count(*) from event_person_leave) = 1, 'parent must see leave days'; end $$;
 do $$ begin assert (select count(*) from leave_balance) = 1, 'parent must see leave balance'; end $$;
 
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
 do $$ begin assert (select count(*) from expense) = 0, 'child must not see expenses'; end $$;
 do $$ begin assert (select count(*) from budget_line) = 0, 'child must not see budget'; end $$;
+do $$ begin assert (select count(*) from energy_price) = 0, 'child must not see energy prices'; end $$;
 do $$ begin assert (select count(*) from document_link) = 0, 'child must not see insurance'; end $$;
 update packing_item set checked = true;
 do $$ begin assert (select bool_and(checked) from packing_item where person_id is null), 'child may check shared items'; end $$;

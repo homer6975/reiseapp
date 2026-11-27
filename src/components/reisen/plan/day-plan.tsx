@@ -55,7 +55,7 @@ import { cn } from "@/lib/utils";
 import { moveDayItem } from "@/server/actions/day-items";
 import type { PlanItem } from "@/server/trips/data";
 
-import { ItemDialog, type EditTarget } from "./item-dialog";
+import { ItemDialog, type EditTarget, type HomePlace } from "./item-dialog";
 import { detailText, isMultiDay, lastDay, timeText } from "./item-text";
 
 const IDEAS = "ideas";
@@ -86,11 +86,13 @@ export function DayPlan({
   days,
   items: serverItems,
   canEdit,
+  home = null,
 }: {
   tripId: string;
   days: string[];
   items: PlanItem[];
   canEdit: boolean;
+  home?: HomePlace;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(serverItems);
@@ -349,6 +351,7 @@ export function DayPlan({
           tripId={tripId}
           days={days}
           target={editing}
+          home={home}
           onClose={() => setEditing(null)}
         />
       )}

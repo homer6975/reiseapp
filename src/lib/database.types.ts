@@ -370,6 +370,42 @@ export type Database = {
           },
         ];
       };
+      energy_price: {
+        Row: {
+          diesel_eur_l: number | null;
+          household_id: string;
+          petrol_eur_l: number | null;
+          power_fast_eur_kwh: number | null;
+          power_home_eur_kwh: number | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          diesel_eur_l?: number | null;
+          household_id: string;
+          petrol_eur_l?: number | null;
+          power_fast_eur_kwh?: number | null;
+          power_home_eur_kwh?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          diesel_eur_l?: number | null;
+          household_id?: string;
+          petrol_eur_l?: number | null;
+          power_fast_eur_kwh?: number | null;
+          power_home_eur_kwh?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "energy_price_household_id_fkey";
+            columns: ["household_id"];
+            isOneToOne: true;
+            referencedRelation: "household";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       event: {
         Row: {
           calendar_uid: string | null;
@@ -656,6 +692,7 @@ export type Database = {
         Row: {
           created_at: string;
           home_currency: string;
+          home_place_id: string | null;
           ics_token: string;
           id: string;
           kdrive_drive_id: string | null;
@@ -667,6 +704,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           home_currency?: string;
+          home_place_id?: string | null;
           ics_token?: string;
           id?: string;
           kdrive_drive_id?: string | null;
@@ -677,6 +715,7 @@ export type Database = {
         Update: {
           created_at?: string;
           home_currency?: string;
+          home_place_id?: string | null;
           ics_token?: string;
           id?: string;
           kdrive_drive_id?: string | null;
@@ -684,7 +723,15 @@ export type Database = {
           name?: string;
           state_code?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "household_home_place_id_fkey";
+            columns: ["home_place_id"];
+            isOneToOne: false;
+            referencedRelation: "place";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       inbound_email: {
         Row: {
@@ -1245,6 +1292,11 @@ export type Database = {
       };
       vehicle: {
         Row: {
+          battery_kwh: number | null;
+          charge_minutes: number | null;
+          consumption: number | null;
+          consumption_winter: number | null;
+          fuel: Database["public"]["Enums"]["fuel_kind"] | null;
           height_m: number | null;
           household_id: string;
           id: string;
@@ -1256,6 +1308,11 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          battery_kwh?: number | null;
+          charge_minutes?: number | null;
+          consumption?: number | null;
+          consumption_winter?: number | null;
+          fuel?: Database["public"]["Enums"]["fuel_kind"] | null;
           height_m?: number | null;
           household_id: string;
           id?: string;
@@ -1266,6 +1323,11 @@ export type Database = {
           width_m?: number | null;
         };
         Update: {
+          battery_kwh?: number | null;
+          charge_minutes?: number | null;
+          consumption?: number | null;
+          consumption_winter?: number | null;
+          fuel?: Database["public"]["Enums"]["fuel_kind"] | null;
           height_m?: number | null;
           household_id?: string;
           id?: string;
@@ -1350,6 +1412,7 @@ export type Database = {
       expense_category:
         "transport" | "lodging" | "food" | "activities" | "fees" | "other";
       expense_status: "planned" | "booked" | "paid" | "refunded";
+      fuel_kind: "diesel" | "petrol" | "electric";
       holiday_kind: "school_holiday" | "public_holiday" | "school_day_off";
       inbound_status: "received" | "parsed" | "applied" | "rejected" | "failed";
       item_kind:
@@ -1525,6 +1588,7 @@ export const Constants = {
         "other",
       ],
       expense_status: ["planned", "booked", "paid", "refunded"],
+      fuel_kind: ["diesel", "petrol", "electric"],
       holiday_kind: ["school_holiday", "public_holiday", "school_day_off"],
       inbound_status: ["received", "parsed", "applied", "rejected", "failed"],
       item_kind: [

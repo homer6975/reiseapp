@@ -25,14 +25,29 @@ export function PlaceInput({
   id,
   defaultName,
   defaultGeo,
+  prefix = "place",
+  onChange,
 }: {
   id: string;
   defaultName: string;
   defaultGeo: Geo | null;
+  /** Feldnamen-Präfix: "place" (Ort bzw. Start) oder "end_place" (Ziel einer Fahrt). */
+  prefix?: "place" | "end_place";
+  onChange?: (name: string, geo: Geo | null) => void;
 }) {
   const listId = useId();
-  const [name, setName] = useState(defaultName);
-  const [geo, setGeo] = useState<Geo | null>(defaultGeo);
+  const [name, setNameState] = useState(defaultName);
+  const [geo, setGeoState] = useState<Geo | null>(defaultGeo);
+  const nameRef = useRef(defaultName);
+  const setName = (next: string) => {
+    setNameState(next);
+    nameRef.current = next;
+    onChange?.(next, null);
+  };
+  const setGeo = (next: Geo | null) => {
+    setGeoState(next);
+    if (next) onChange?.(nameRef.current, next);
+  };
   const [results, setResults] = useState<Result[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +81,8 @@ export function PlaceInput({
 
   function pick(r: Result) {
     typed.current = false;
-    setName(r.name);
+    setNameState(r.name);
+    nameRef.current = r.name;
     setGeo({
       lat: r.lat,
       lon: r.lon,
@@ -80,7 +96,7 @@ export function PlaceInput({
     <div className="relative">
       <Input
         id={id}
-        name="place_name"
+        name={`${prefix}_name`}
         value={name}
         autoComplete="off"
         role="combobox"
@@ -96,16 +112,16 @@ export function PlaceInput({
       />
       {geo && (
         <>
-          <input type="hidden" name="place_lat" value={geo.lat} />
-          <input type="hidden" name="place_lon" value={geo.lon} />
+          <input type="hidden" name={`${prefix}_lat`} value={geo.lat} />
+          <input type="hidden" name={`${prefix}_lon`} value={geo.lon} />
           <input
             type="hidden"
-            name="place_country"
+            name={`${prefix}_country`}
             value={geo.countryCode ?? ""}
           />
           <input
             type="hidden"
-            name="place_external_id"
+            name={`${prefix}_external_id`}
             value={geo.externalId ?? ""}
           />
         </>
@@ -117,7 +133,7 @@ export function PlaceInput({
           </span>
         ) : (
           (error ??
-          "Ab 3 Zeichen Vorschläge; ohne Auswahl nicht auf der Karte.")
+          "Ort oder Adresse mit Hausnummer; ohne Auswahl aus den Vorschlägen nicht auf der Karte.")
         )}
       </p>
       {open && results.length > 0 && (

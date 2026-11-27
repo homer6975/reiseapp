@@ -20,6 +20,7 @@ export const uuid = z.uuid("Ungültige ID.");
 
 export const householdSchema = z.object({
   name: requiredText("Name"),
+  place_name: z.preprocess(emptyToNull, z.string().trim().max(200).nullable()),
 });
 
 export const personSchema = z.object({
@@ -65,6 +66,33 @@ export const vehicleSchema = z.object({
   width_m: optionalNumber(z.number().positive().max(5)),
   height_m: optionalNumber(z.number().positive().max(5)),
   weight_kg: optionalNumber(z.number().int().positive().max(50000)),
+  // Fahrtplanung: Antrieb und Verbrauch (Autobahn) je 100 km.
+  fuel: z.preprocess(
+    emptyToNull,
+    z.enum(["diesel", "petrol", "electric"]).nullable(),
+  ),
+  consumption: optionalNumber(
+    z.number("Verbrauch als Zahl.").positive().max(100),
+  ),
+  consumption_winter: optionalNumber(
+    z.number("Winterverbrauch als Zahl.").positive().max(100),
+  ),
+  battery_kwh: optionalNumber(z.number("Akku als Zahl.").positive().max(300)),
+  charge_minutes: optionalNumber(
+    z.number().int("Ladezeit in ganzen Minuten.").min(5).max(120),
+  ),
+});
+
+const price = optionalNumber(
+  z.number("Preis als Zahl, z. B. 1,659.").min(0).max(99),
+);
+
+/** Energiepreise für die Kostenschätzung einer Fahrt (nur Eltern). */
+export const energyPriceSchema = z.object({
+  diesel_eur_l: price,
+  petrol_eur_l: price,
+  power_home_eur_kwh: price,
+  power_fast_eur_kwh: price,
 });
 
 export const kdriveSchema = z.object({

@@ -26,7 +26,7 @@ export async function loadMapPoints(
   const { data } = await supabase
     .from("day_item")
     .select(
-      "id, day, position, kind, title, start_at, tz, place:place!day_item_place_id_fkey(name, lat, lon)",
+      "id, day, position, kind, title, start_at, tz, place:place!day_item_place_id_fkey(name, lat, lon), end_place:place!day_item_end_place_id_fkey(name, lat, lon)",
     )
     .eq("trip_id", tripId)
     .not("place_id", "is", null)
@@ -34,18 +34,26 @@ export async function loadMapPoints(
     .order("position");
   const points: MapPoint[] = [];
   const withoutCoords: string[] = [];
-  for (const { place, ...item } of data ?? []) {
-    if (!place) continue;
-    if (place.lat === null || place.lon === null) {
-      withoutCoords.push(`${item.title} (${place.name})`);
-      continue;
+  for (const { place, end_place, ...item } of data ?? []) {
+    // Fahrten haben Start (place) und Ziel (end_place); beide kommen auf die Karte.
+    const stops = [
+      { suffix: "", p: place },
+      { suffix: ":ziel", p: item.kind === "transport" ? end_place : null },
+    ];
+    for (const { suffix, p } of stops) {
+      if (!p) continue;
+      if (p.lat === null || p.lon === null) {
+        withoutCoords.push(`${item.title} (${p.name})`);
+        continue;
+      }
+      points.push({
+        ...item,
+        id: item.id + suffix,
+        placeName: p.name,
+        lat: p.lat,
+        lon: p.lon,
+      });
     }
-    points.push({
-      ...item,
-      placeName: place.name,
-      lat: place.lat,
-      lon: place.lon,
-    });
   }
   return { points, withoutCoords };
 }
