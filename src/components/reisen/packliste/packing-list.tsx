@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useRealtimeRefresh } from "@/lib/use-realtime-refresh";
-import { cn } from "@/lib/utils";
+import { cn, NEUTRAL_COLOR } from "@/lib/utils";
 import {
   addPackingItem,
   deletePackingItem,
@@ -71,7 +71,7 @@ export function PackingList({
   const progress = useMemo(() => {
     const groups = [
       ...persons.map((p) => ({ key: p.id, label: p.name, color: p.color })),
-      { key: SHARED, label: "Gemeinsam", color: "#64748b" },
+      { key: SHARED, label: "Gemeinsam", color: NEUTRAL_COLOR },
     ];
     return groups
       .map((g) => {

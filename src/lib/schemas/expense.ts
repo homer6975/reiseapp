@@ -1,9 +1,8 @@
 import { z } from "zod";
 
 import { EXPENSE_CATEGORIES, EXPENSE_STATUS } from "@/lib/money";
+import { isoDate, missingToNull } from "@/lib/schemas/common";
 
-const emptyToNull = (v: unknown) =>
-  v === undefined || (typeof v === "string" && v.trim() === "") ? null : v;
 /** „1.234,56“ oder „1234.56“ → „1234.56“ (String, damit numeric exakt bleibt). */
 export function normalizeDecimal(v: unknown): unknown {
   if (typeof v !== "string") return v;
@@ -32,7 +31,7 @@ export const expenseSchema = z
       .trim()
       .toUpperCase()
       .regex(/^[A-Z]{3}$/, "Währung als ISO-Code, z. B. USD."),
-    spent_on: z.iso.date("Datum ungültig."),
+    spent_on: isoDate,
     category: z.enum(
       Object.keys(EXPENSE_CATEGORIES) as [keyof typeof EXPENSE_CATEGORIES],
       { error: "Kategorie wählen." },
@@ -41,11 +40,11 @@ export const expenseSchema = z
       Object.keys(EXPENSE_STATUS) as [keyof typeof EXPENSE_STATUS],
       { error: "Status wählen." },
     ),
-    paid_by: z.preprocess(emptyToNull, z.uuid().nullable()),
-    day_item_id: z.preprocess(emptyToNull, z.uuid().nullable()),
-    note: z.preprocess(emptyToNull, z.string().trim().max(2000).nullable()),
+    paid_by: z.preprocess(missingToNull, z.uuid().nullable()),
+    day_item_id: z.preprocess(missingToNull, z.uuid().nullable()),
+    note: z.preprocess(missingToNull, z.string().trim().max(2000).nullable()),
     fx_overridden: z.preprocess((v) => v === "on", z.boolean()),
-    fx_rate: z.preprocess(emptyToNull, decimal(10, 8, "Kurs").nullable()),
+    fx_rate: z.preprocess(missingToNull, decimal(10, 8, "Kurs").nullable()),
   })
   .refine((v) => !v.fx_overridden || v.fx_rate !== null, {
     message: "Bitte den eigenen Kurs eintragen.",
