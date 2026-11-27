@@ -10,9 +10,15 @@ import { findConflicts } from "@/lib/conflicts";
 import { schoolYearOf, todayInBerlin } from "@/lib/dates";
 import { formatDateRange } from "@/lib/format";
 import { EVENT_KINDS } from "@/lib/planner-labels";
+import { TRIP_STATUS } from "@/lib/trip-labels";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-import { loadEvents, loadHolidays, loadPersons } from "@/server/planner/data";
+import {
+  loadEvents,
+  loadHolidays,
+  loadPersons,
+  loadTrips,
+} from "@/server/planner/data";
 
 export const metadata: Metadata = { title: "Jahresplaner" };
 
@@ -46,6 +52,12 @@ export default async function YearPage({ searchParams }: PageProps<"/jahr">) {
     loadHolidays(supabase, range),
     loadEvents(supabase, me, range, persons),
   ]);
+  const trips = await loadTrips(
+    supabase,
+    me.householdId,
+    range,
+    events.map((e) => e.tripId),
+  );
   const conflicts = findConflicts(events, today);
   const conflictIds = new Set(
     conflicts.filter((c) => c.severity === "error").map((c) => c.eventId),
@@ -113,6 +125,7 @@ export default async function YearPage({ searchParams }: PageProps<"/jahr">) {
         range={range}
         persons={persons}
         events={events}
+        trips={trips}
         holidays={holidays}
         today={today}
         conflictEventIds={conflictIds}
@@ -131,6 +144,10 @@ export default async function YearPage({ searchParams }: PageProps<"/jahr">) {
         <span className="flex items-center gap-1">
           <span className="inline-block size-3 rounded-sm bg-muted" />{" "}
           Wochenende
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block size-3 rounded-sm border-2 border-dashed border-primary" />{" "}
+          Reise ohne Termin
         </span>
         <span>⚠ Konflikt</span>
       </p>
@@ -155,6 +172,41 @@ export default async function YearPage({ searchParams }: PageProps<"/jahr">) {
         conflicts={conflicts}
         titles={Object.fromEntries(events.map((e) => [e.id, e.title]))}
       />
+
+      {trips.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="font-semibold">Reisen ohne Termin</h2>
+          <ul className="divide-y rounded-xl border">
+            {trips.map((t) => (
+              <li key={t.id}>
+                <Link
+                  href={`/reisen/${t.id}`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-accent"
+                >
+                  <span className="flex-1">
+                    <span className="block font-medium">{t.title}</span>
+                    <span className="block text-sm text-muted-foreground">
+                      {TRIP_STATUS[t.status]} ·{" "}
+                      {formatDateRange(t.start, t.end)}
+                      {t.personIds.length > 0 &&
+                        ` · ${t.personIds
+                          .map(
+                            (id) =>
+                              persons.find((p) => p.id === id)?.name ?? "?",
+                          )
+                          .join(", ")}`}
+                    </span>
+                  </span>
+                  <ChevronRight
+                    className="size-4 text-muted-foreground"
+                    aria-hidden
+                  />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="space-y-2">
         <h2 className="font-semibold">Termine</h2>

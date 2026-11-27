@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils";
 import { moveDayItem } from "@/server/actions/day-items";
 import type { PlanItem } from "@/server/trips/data";
 
+import { CopyDialog, type CopyTarget } from "./copy-dialog";
 import { ItemDialog, type EditTarget, type HomePlace } from "./item-dialog";
 import { detailText, isMultiDay, lastDay, timeText } from "./item-text";
 
@@ -87,19 +88,23 @@ export function DayPlan({
   items: serverItems,
   canEdit,
   home = null,
+  copyTargets = [],
 }: {
   tripId: string;
   days: string[];
   items: PlanItem[];
   canEdit: boolean;
   home?: HomePlace;
+  copyTargets?: CopyTarget[];
 }) {
   const router = useRouter();
   const [items, setItems] = useState(serverItems);
   const [columns, setColumns] = useState<Columns | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editing, setEditing] = useState<EditTarget>(null);
+  const [copying, setCopying] = useState<PlanItem | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const dragging = useRef(false);
 
@@ -267,6 +272,10 @@ export function DayPlan({
                     onUp={() => commit(id, key, index - 1)}
                     onDown={() => commit(id, key, index + 1)}
                     onEdit={() => setEditing({ item, day: item.day })}
+                    onCopy={() => {
+                      setNotice(null);
+                      setCopying(item);
+                    }}
                   />
                 ) : null
               }
@@ -284,6 +293,11 @@ export function DayPlan({
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {notice}
         </p>
       )}
       <DndContext
@@ -353,6 +367,20 @@ export function DayPlan({
           target={editing}
           home={home}
           onClose={() => setEditing(null)}
+        />
+      )}
+      {canEdit && (
+        <CopyDialog
+          tripId={tripId}
+          item={copying}
+          trips={copyTargets}
+          onClose={() => setCopying(null)}
+          onCopied={(text) => {
+            setCopying(null);
+            setError(null);
+            setNotice(text);
+            router.refresh();
+          }}
         />
       )}
     </div>
@@ -557,6 +585,7 @@ function MoveMenu({
   onUp,
   onDown,
   onEdit,
+  onCopy,
 }: {
   title: string;
   containers: string[];
@@ -567,6 +596,7 @@ function MoveMenu({
   onUp: () => void;
   onDown: () => void;
   onEdit: () => void;
+  onCopy: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -582,6 +612,7 @@ function MoveMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem onSelect={onEdit}>Bearbeiten</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onCopy}>Kopieren …</DropdownMenuItem>
         <DropdownMenuItem disabled={!canUp} onSelect={onUp}>
           Nach oben
         </DropdownMenuItem>

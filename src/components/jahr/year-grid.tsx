@@ -4,6 +4,7 @@ import { daysBetween, eachDay, isWeekday, type DateRange } from "@/lib/dates";
 import type {
   PlannerEvent,
   PlannerPerson,
+  PlannerTrip,
   StateHolidays,
 } from "@/server/planner/data";
 
@@ -41,6 +42,7 @@ export function YearGrid({
   range,
   persons,
   events,
+  trips = [],
   holidays,
   today,
   conflictEventIds,
@@ -49,6 +51,7 @@ export function YearGrid({
   range: DateRange;
   persons: PlannerPerson[];
   events: PlannerEvent[];
+  trips?: PlannerTrip[];
   holidays: StateHolidays;
   today: string;
   conflictEventIds: Set<string>;
@@ -157,6 +160,9 @@ export function YearGrid({
             const mine = events.filter((e) =>
               e.persons.some((ep) => ep.personId === p.id),
             );
+            const myTrips = trips.filter(
+              (t) => t.personIds.length === 0 || t.personIds.includes(p.id),
+            );
             return (
               <div
                 key={p.id}
@@ -208,6 +214,25 @@ export function YearGrid({
                         </span>
                       )}
                       {e.title}
+                    </Link>
+                  );
+                })}
+                {myTrips.map((t) => {
+                  const s = clip(t, range, total);
+                  if (!s) return null;
+                  return (
+                    <Link
+                      key={`t-${t.id}`}
+                      href={`/reisen/${t.id}`}
+                      title={`Reise: ${t.title}`}
+                      style={{
+                        ...col(s),
+                        borderColor: p.color,
+                        color: p.color,
+                      }}
+                      className="relative z-[1] my-1.5 flex items-center overflow-hidden rounded border-2 border-dashed bg-background px-1 text-[11px] font-medium whitespace-nowrap"
+                    >
+                      {t.title}
                     </Link>
                   );
                 })}

@@ -146,3 +146,43 @@ export async function loadEvents(
       : undefined,
   }));
 }
+
+export type PlannerTrip = DateRange & {
+  id: string;
+  title: string;
+  status: "idea" | "planned" | "booked" | "ongoing" | "done";
+  /** Teilnehmende; leer = ganze Familie */
+  personIds: string[];
+};
+
+/**
+ * Reisen im Zeitraum, die mit keinem Termin verknüpft sind (direkt unter
+ * „Reisen“ angelegt). Verknüpfte Reisen erscheinen über ihren Termin.
+ */
+export async function loadTrips(
+  supabase: Supabase,
+  householdId: string,
+  range: DateRange,
+  linkedTripIds: Iterable<string | null>,
+): Promise<PlannerTrip[]> {
+  const linked = new Set(linkedTripIds);
+  const { data } = await supabase
+    .from("trip")
+    .select(
+      "id, title, status, start_date, end_date, trip_member(person_id), event(id)",
+    )
+    .eq("household_id", householdId)
+    .lte("start_date", range.end)
+    .gte("end_date", range.start)
+    .order("start_date");
+  return (data ?? [])
+    .filter((t) => !linked.has(t.id) && t.event.length === 0)
+    .map((t) => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      start: t.start_date,
+      end: t.end_date,
+      personIds: t.trip_member.map((m) => m.person_id),
+    }));
+}
