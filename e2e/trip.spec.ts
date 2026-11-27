@@ -83,6 +83,23 @@ test("Flug FRA→JFK zeigt beide Ortszeiten, Idee wandert auf einen Tag", async 
     }),
   ).toBeVisible();
 
+  // Flug auf einen anderen Tag kopieren: gleiche Ortszeiten, Check-in wandert mit
+  await page.getByRole("button", { name: "Aktionen für Hinflug" }).click();
+  await page.getByRole("menuitem", { name: "Kopieren …" }).click();
+  const copy = page.getByRole("dialog", { name: "Eintrag kopieren" });
+  await copy.getByLabel("Tag").selectOption("2027-08-01");
+  await copy.getByRole("button", { name: "Kopieren" }).click();
+  await expect(copy).toBeHidden();
+  await expect(
+    day("So., 01.08.", page).getByText("FRA 10:05 → JFK 12:55 (Ortszeit)"),
+  ).toBeVisible();
+  await expect(
+    day("So., 01.08.", page).getByText(/Check-in ab Sa\., 31\.07\., 10:05/),
+  ).toBeVisible();
+  await expect(
+    day("Fr., 30.07.", page).getByText("FRA 10:05 → JFK 12:55 (Ortszeit)"),
+  ).toBeVisible();
+
   // Nach dem Neuladen bleibt alles an seinem Platz
   await page.reload();
   await expect(

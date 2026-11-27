@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireParent, type Me } from "@/lib/auth";
+import { shiftTimesToDay } from "@/lib/copy-item";
 import { fail, ok, zodMessage, type FormState } from "@/lib/form-state";
 import { placeAt, STEP } from "@/lib/ordering";
 import { parseDayItemForm, parsePlaceGeo } from "@/lib/schemas/day-item";
@@ -190,5 +191,56 @@ export async function moveDayItem(input: z.input<typeof moveSchema>) {
     if (error) return { ok: false as const };
   }
   revalidatePath(`/reisen/${trip.id}`, "layout");
+  return { ok: true as const };
+}
+
+const copySchema = z.object({
+  tripId: uuid,
+  id: uuid,
+  targetTripId: uuid,
+  day: z.iso.date().nullable(),
+});
+
+// Eintrag auf einen anderen Tag kopieren, auch in eine andere Reise. Ortszeiten bleiben
+// gleich; Kosten und Dokumente hängen am Original und werden nicht mitkopiert.
+export async function copyDayItem(input: z.input<typeof copySchema>) {
+  const me = await requireParent();
+  const parsed = copySchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const };
+  const { tripId, id, targetTripId, day } = parsed.data;
+  const supabase = await createClient();
+  const [source, target] = await Promise.all([
+    loadTrip(supabase, me, tripId),
+    targetTripId === tripId ? null : loadTrip(supabase, me, targetTripId),
+  ]);
+  const targetTrip = targetTripId === tripId ? source : target;
+  if (!source || !targetTrip) return { ok: false as const };
+  if (day && (day < targetTrip.start_date || day > targetTrip.end_date)) {
+    return { ok: false as const };
+  }
+
+  const { data: item } = await supabase
+    .from("day_item")
+    .select(
+      "kind, title, day, start_at, end_at, tz, end_tz, span_days, place_id, end_place_id, booking_ref, url, details",
+    )
+    .eq("id", id)
+    .eq("trip_id", source.id)
+    .maybeSingle();
+  if (!item) return { ok: false as const };
+
+  const position = (await lastPosition(supabase, targetTrip.id, day)) + STEP;
+  const { error } = await supabase.from("day_item").insert({
+    ...item,
+    ...shiftTimesToDay(item, day),
+    position,
+    trip_id: targetTrip.id,
+    created_by: me.personId,
+  });
+  if (error) return { ok: false as const };
+  revalidatePath(`/reisen/${source.id}`, "layout");
+  if (targetTrip.id !== source.id) {
+    revalidatePath(`/reisen/${targetTrip.id}`, "layout");
+  }
   return { ok: true as const };
 }
