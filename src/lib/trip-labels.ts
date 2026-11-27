@@ -22,7 +22,6 @@ export const ITEM_KINDS = {
   activity: "Aktivität",
   note: "Notiz",
 } as const;
-export type ItemKind = keyof typeof ITEM_KINDS;
 
 export const TRANSPORT_MODES = {
   car: "Auto",

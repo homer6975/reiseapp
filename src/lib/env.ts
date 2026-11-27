@@ -39,9 +39,5 @@ export const DEFAULT_MAP_STYLE_URL =
   "https://tiles.openfreemap.org/styles/liberty";
 
 export function mapStyleUrl(): string {
-  return (
-    process.env.MAP_STYLE_URL ||
-    process.env.NEXT_PUBLIC_MAP_STYLE_URL ||
-    DEFAULT_MAP_STYLE_URL
-  );
+  return process.env.MAP_STYLE_URL || DEFAULT_MAP_STYLE_URL;
 }

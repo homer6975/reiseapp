@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Json } from "@/lib/database.types";
 
 import { addDays } from "@/lib/dates";
+import { isoDate, missingToNull } from "@/lib/schemas/common";
 import { DEFAULT_TZ, isValidTimeZone, localToUtc } from "@/lib/timezone";
 
 // Typspezifische Felder in day_item.details (SPEC §5.3).
@@ -126,8 +127,6 @@ const DETAIL_FIELDS: Record<ItemKind, string[]> = {
 /** Mehrtägige Arten: Nächte statt Endzeit. */
 export const MULTI_DAY_KINDS: ItemKind[] = ["lodging", "campsite"];
 
-const emptyToNull = (v: unknown) =>
-  v === undefined || (typeof v === "string" && v.trim() === "") ? null : v;
 const tz = z.preprocess(
   (v) => (typeof v === "string" ? v.trim() || null : (v ?? null)),
   z
@@ -142,9 +141,9 @@ const baseSchema = z.object({
     { error: "Art wählen." },
   ),
   title: z.string().trim().min(1, "Titel fehlt.").max(200),
-  day: z.preprocess(emptyToNull, z.iso.date("Datum ungültig.").nullable()),
+  day: z.preprocess(missingToNull, isoDate.nullable()),
   start_time: hhmm,
-  end_date: z.preprocess(emptyToNull, z.iso.date("Datum ungültig.").nullable()),
+  end_date: z.preprocess(missingToNull, isoDate.nullable()),
   end_time: hhmm,
   tz,
   end_tz: tz,
@@ -152,14 +151,20 @@ const baseSchema = z.object({
     (v) => (v === "" || v == null ? 1 : Number(v)),
     z.number().int("Nächte als ganze Zahl.").min(1).max(60),
   ),
-  booking_ref: z.preprocess(emptyToNull, z.string().trim().max(100).nullable()),
+  booking_ref: z.preprocess(
+    missingToNull,
+    z.string().trim().max(100).nullable(),
+  ),
   url: z.preprocess(
-    emptyToNull,
+    missingToNull,
     z.url({ protocol: /^https?$/, error: "Link ungültig." }).nullable(),
   ),
-  place_name: z.preprocess(emptyToNull, z.string().trim().max(200).nullable()),
+  place_name: z.preprocess(
+    missingToNull,
+    z.string().trim().max(200).nullable(),
+  ),
   end_place_name: z.preprocess(
-    emptyToNull,
+    missingToNull,
     z.string().trim().max(200).nullable(),
   ),
 });

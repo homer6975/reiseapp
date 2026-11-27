@@ -1,10 +1,7 @@
 import { z } from "zod";
 
+import { emptyToNull, isoDate } from "@/lib/schemas/common";
 import { ACTIVITIES, CLIMATES } from "@/lib/schemas/packing-template";
-
-const emptyToNull = (v: unknown) =>
-  typeof v === "string" && v.trim() === "" ? null : v;
-const isoDate = z.iso.date("Datum ungültig.");
 
 export const tripSchema = z
   .object({

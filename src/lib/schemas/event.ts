@@ -1,8 +1,6 @@
 import { z } from "zod";
 
-const emptyToNull = (v: unknown) =>
-  typeof v === "string" && v.trim() === "" ? null : v;
-const isoDate = z.iso.date("Datum ungültig.");
+import { emptyToNull, isoDate } from "@/lib/schemas/common";
 
 export const eventSchema = z
   .object({

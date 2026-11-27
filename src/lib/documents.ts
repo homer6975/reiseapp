@@ -11,9 +11,6 @@ export const DOC_TYPES = {
 } as const;
 export type DocType = keyof typeof DOC_TYPES;
 
-/** Typen, die Kinder nicht sehen (RLS `doc_read`). */
-export const PARENT_ONLY_DOC_TYPES: DocType[] = ["insurance", "receipt"];
-
 export const TRIP_SUBFOLDERS = [
   "Tickets",
   "Unterkunft",
