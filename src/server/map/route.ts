@@ -36,7 +36,11 @@ export async function routeForDay(
     coords.push([p.lon, p.lat]);
   }
   if (coords.length < 2) return null;
+  return cachedRoute(coords);
+}
 
+/** Autoroute durch die Punkte: erst route_cache, dann openrouteservice. */
+export async function cachedRoute(coords: LonLat[]): Promise<Route> {
   const hash = routeHash(PROFILE, coords);
   const db = createServiceClient();
   const { data: cached } = await db

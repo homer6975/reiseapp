@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { requireParent } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { PlaceInput } from "@/components/reisen/plan/place-input";
 import { CopyField } from "@/components/settings/copy-field";
 import { renewIcsToken, saveHousehold } from "@/server/actions/settings";
 
@@ -37,7 +38,7 @@ const sections = [
   {
     href: "/einstellungen/fahrzeuge",
     label: "Fahrzeuge",
-    hint: "Auto, Zugfahrzeug, Wohnwagen",
+    hint: "Autos mit Verbrauch, Energiepreise, Wohnwagen",
     icon: Car,
   },
   {
@@ -59,9 +60,12 @@ export default async function SettingsPage() {
   const supabase = await createClient();
   const { data: household } = await supabase
     .from("household")
-    .select("name, state_code, ics_token")
+    .select(
+      "name, state_code, ics_token, home_place:place!household_home_place_id_fkey(name, lat, lon, country_code, external_id)",
+    )
     .eq("id", me.householdId)
     .single();
+  const home = household?.home_place ?? null;
   const feedUrl = household
     ? `${await baseUrl()}/api/ics/${household.ics_token}.ics`
     : null;
@@ -110,9 +114,25 @@ export default async function SettingsPage() {
               required
             />
           </Field>
+          <Field label="Heimatadresse" htmlFor="household-home">
+            <PlaceInput
+              id="household-home"
+              defaultName={home?.name ?? ""}
+              defaultGeo={
+                home && home.lat !== null && home.lon !== null
+                  ? {
+                      lat: home.lat,
+                      lon: home.lon,
+                      countryCode: home.country_code,
+                      externalId: home.external_id,
+                    }
+                  : null
+              }
+            />
+          </Field>
           <p className="text-sm text-muted-foreground">
-            Bundesland für Ferien und Feiertage: Baden-Württemberg (
-            {household?.state_code})
+            Start neuer Fahrten. Bundesland für Ferien und Feiertage:
+            Baden-Württemberg ({household?.state_code})
           </p>
         </ActionForm>
       </Card>

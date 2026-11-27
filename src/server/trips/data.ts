@@ -38,13 +38,37 @@ export type PlanItem = {
   url: string | null;
   details: Record<string, unknown>;
   placeName: string | null;
-  place: {
-    lat: number;
-    lon: number;
-    countryCode: string | null;
-    externalId: string | null;
-  } | null;
+  place: PlaceGeo | null;
+  /** Ziel einer Fahrt. */
+  endPlaceName: string | null;
+  endPlace: PlaceGeo | null;
 };
+
+type PlaceGeo = {
+  lat: number;
+  lon: number;
+  countryCode: string | null;
+  externalId: string | null;
+};
+
+type PlaceRow = {
+  name: string;
+  lat: number | null;
+  lon: number | null;
+  country_code: string | null;
+  external_id: string | null;
+} | null;
+
+function geoOf(place: PlaceRow): PlaceGeo | null {
+  return place && place.lat !== null && place.lon !== null
+    ? {
+        lat: place.lat,
+        lon: place.lon,
+        countryCode: place.country_code,
+        externalId: place.external_id,
+      }
+    : null;
+}
 
 const TRIP_FIELDS = "id, title, start_date, end_date, mode, status";
 
@@ -88,23 +112,17 @@ export async function loadPlanItems(
   const { data } = await supabase
     .from("day_item")
     .select(
-      "id, day, position, kind, title, start_at, end_at, tz, end_tz, span_days, booking_ref, url, details, place:place!day_item_place_id_fkey(name, lat, lon, country_code, external_id)",
+      "id, day, position, kind, title, start_at, end_at, tz, end_tz, span_days, booking_ref, url, details, place:place!day_item_place_id_fkey(name, lat, lon, country_code, external_id), end_place:place!day_item_end_place_id_fkey(name, lat, lon, country_code, external_id)",
     )
     .eq("trip_id", tripId)
     .order("position");
-  return (data ?? []).map(({ place, details, ...item }) => ({
+  return (data ?? []).map(({ place, end_place, details, ...item }) => ({
     ...item,
     details: (details ?? {}) as Record<string, unknown>,
     placeName: place?.name ?? null,
-    place:
-      place && place.lat !== null && place.lon !== null
-        ? {
-            lat: place.lat,
-            lon: place.lon,
-            countryCode: place.country_code,
-            externalId: place.external_id,
-          }
-        : null,
+    place: geoOf(place),
+    endPlaceName: end_place?.name ?? null,
+    endPlace: geoOf(end_place),
   }));
 }
 
@@ -151,4 +169,18 @@ export async function loadCheckinReminders(
     })
     .filter((r) => Date.parse(r.opensAt) <= horizon)
     .sort((a, b) => a.opensAt.localeCompare(b.opensAt));
+}
+
+/** Heimatadresse des Haushalts (Standard-Start einer Fahrt), nur mit Koordinaten. */
+export async function loadHomePlace(supabase: Supabase, householdId: string) {
+  const { data } = await supabase
+    .from("household")
+    .select(
+      "home_place:place!household_home_place_id_fkey(name, lat, lon, country_code, external_id)",
+    )
+    .eq("id", householdId)
+    .maybeSingle();
+  const place = data?.home_place ?? null;
+  const geo = geoOf(place);
+  return place && geo ? { name: place.name, geo } : null;
 }

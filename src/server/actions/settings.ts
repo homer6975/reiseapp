@@ -9,7 +9,9 @@ import { requireParent } from "@/lib/auth";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/env";
 import { fail, ok, zodMessage, type FormState } from "@/lib/form-state";
 import { parsePackingTemplateForm } from "@/lib/schemas/packing-template";
+import { parsePlaceGeo } from "@/lib/schemas/day-item";
 import {
+  energyPriceSchema,
   householdSchema,
   kdriveSchema,
   personSchema,
@@ -21,6 +23,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { importHolidays } from "@/server/holidays/import";
 import { testConnection } from "@/server/integrations/kdrive";
+import { placeIdFor } from "@/server/places";
 
 // Alle Einstellungen: nur Eltern (requireParent) und zusätzlich RLS (Cookie-Session).
 
@@ -44,10 +47,21 @@ export async function saveHousehold(
   const me = await requireParent();
   const parsed = householdSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(zodMessage(parsed.error));
+  const { name, place_name } = parsed.data;
+  const geo = parsePlaceGeo(formData);
+  if (place_name && !geo) {
+    return fail("Heimatadresse bitte aus den Vorschlägen wählen.");
+  }
   const supabase = await createClient();
+  const home_place_id = await placeIdFor(
+    supabase,
+    me.householdId,
+    place_name,
+    geo,
+  );
   const { error } = await supabase
     .from("household")
-    .update(parsed.data)
+    .update({ name, home_place_id })
     .eq("id", me.householdId);
   return error ? fail(SAVE_ERROR) : done();
 }
@@ -233,6 +247,23 @@ export async function deleteVehicle(
     .eq("id", id.data)
     .eq("household_id", me.householdId);
   return error ? fail("Löschen hat nicht geklappt.") : done("Gelöscht.");
+}
+
+// Energiepreise für die Kostenschätzung einer Fahrt (Kosten → nur Eltern, RLS).
+export async function saveEnergyPrices(
+  _: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const me = await requireParent();
+  const parsed = energyPriceSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(zodMessage(parsed.error));
+  const supabase = await createClient();
+  const { error } = await supabase.from("energy_price").upsert({
+    ...parsed.data,
+    household_id: me.householdId,
+    updated_at: new Date().toISOString(),
+  });
+  return error ? fail(SAVE_ERROR) : done();
 }
 
 // --- Packvorlagen -------------------------------------------------------------

@@ -5,7 +5,7 @@ import { DayPlan } from "@/components/reisen/plan/day-plan";
 import { getMe } from "@/lib/auth";
 import { eachDay } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { loadPlanItems, loadTrip } from "@/server/trips/data";
+import { loadHomePlace, loadPlanItems, loadTrip } from "@/server/trips/data";
 
 export const metadata: Metadata = { title: "Tagesplan" };
 
@@ -17,7 +17,10 @@ export default async function PlanPage({
   const supabase = await createClient();
   const trip = await loadTrip(supabase, me.householdId, id);
   if (!trip) notFound();
-  const items = await loadPlanItems(supabase, trip.id);
+  const [items, home] = await Promise.all([
+    loadPlanItems(supabase, trip.id),
+    me.isParent ? loadHomePlace(supabase, me.householdId) : null,
+  ]);
 
   return (
     <DayPlan
@@ -25,6 +28,7 @@ export default async function PlanPage({
       days={eachDay({ start: trip.start_date, end: trip.end_date })}
       items={items}
       canEdit={me.isParent}
+      home={home}
     />
   );
 }
