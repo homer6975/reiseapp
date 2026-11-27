@@ -172,6 +172,24 @@ export async function moveDayItem(input: z.input<typeof moveSchema>) {
     return { ok: false as const };
   }
 
+  const { data: moved } = await supabase
+    .from("day_item")
+    .select(
+      "id, trip_id, kind, title, day, start_at, end_at, tz, end_tz, details",
+    )
+    .eq("id", id)
+    .eq("trip_id", trip.id)
+    .maybeSingle();
+  if (!moved) return { ok: false as const };
+  // Auf einen Tag: Uhrzeiten (Ortszeit) aufs Datum des Tags ziehen, damit Kalender-Abo
+  // und Check-in-Erinnerung stimmen. In der Ideen-Ablage bleiben sie, wie sie sind.
+  const times =
+    day !== null
+      ? (({ start_at, end_at, details }) => ({ start_at, end_at, details }))(
+          shiftTimesToDay(moved, day),
+        )
+      : {};
+
   const listQuery = supabase
     .from("day_item")
     .select("id, trip_id, kind, title, position")
@@ -183,14 +201,7 @@ export async function moveDayItem(input: z.input<typeof moveSchema>) {
 
   if (renumbered) {
     // Ein einziges Upsert = eine Transaktion.
-    const moved = await supabase
-      .from("day_item")
-      .select("id, trip_id, kind, title")
-      .eq("id", id)
-      .eq("trip_id", trip.id)
-      .single();
-    if (!moved.data) return { ok: false as const };
-    const byId = new Map([...(list ?? []), moved.data].map((i) => [i.id, i]));
+    const byId = new Map([...(list ?? []), moved].map((i) => [i.id, i]));
     const { error } = await supabase.from("day_item").upsert(
       renumbered.map((r) => {
         const item = byId.get(r.id)!;
@@ -201,6 +212,7 @@ export async function moveDayItem(input: z.input<typeof moveSchema>) {
           title: item.title,
           day,
           position: r.position,
+          ...(r.id === id ? times : {}),
         };
       }),
     );
@@ -208,7 +220,7 @@ export async function moveDayItem(input: z.input<typeof moveSchema>) {
   } else {
     const { error } = await supabase
       .from("day_item")
-      .update({ day, position })
+      .update({ day, position, ...times })
       .eq("id", id)
       .eq("trip_id", trip.id);
     if (error) return { ok: false as const };
