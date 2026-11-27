@@ -133,6 +133,7 @@ export async function POST(
       .eq("id", trip.id);
     if (error) return fail("Bild hochgeladen, aber nicht gespeichert.");
   } catch (e) {
+    console.error("[trip-cover] Upload fehlgeschlagen", e);
     return fail(kdriveMessage(e));
   }
   revalidatePath("/", "layout");
