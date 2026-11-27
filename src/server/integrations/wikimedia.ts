@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 // Stadtbild zu einem Reiseziel aus Wikipedia/Wikidata/Wikimedia Commons, ohne Schlüssel.
 // Ablauf (MediaWiki Action API, formatversion=2):
 //   1. de.wikipedia.org/w/api.php?action=query&titles=…&redirects=1&prop=pageprops|pageimages
@@ -175,24 +177,58 @@ export function creditLine(info: ImageInfo): string {
     .join(" · ");
 }
 
+/**
+ * Vorschaubild-Adresse auf upload.wikimedia.org ohne API: Commons legt Dateien unter
+ * dem MD5 des Dateinamens (Leerzeichen als _) ab, Vorschaubilder unter /thumb/…/{Breite}px-…
+ */
+export function commonsThumbUrl(fileName: string, width = COVER_WIDTH): string {
+  const name = fileName.replace(/ /g, "_");
+  const hash = createHash("md5").update(name).digest("hex");
+  const path = `${hash[0]}/${hash.slice(0, 2)}/${encodeURIComponent(name)}`;
+  return `https://upload.wikimedia.org/wikipedia/commons/thumb/${path}/${width}px-${encodeURIComponent(name)}`;
+}
+
+export function commonsFilePage(fileName: string): string {
+  return `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileName.replace(/ /g, "_"))}`;
+}
+
 async function imageInfo(fileName: string): Promise<CityImage | null> {
-  const body = await api<{
-    query?: { pages?: { imageinfo?: ImageInfo[] }[] };
-  }>(urls().commons, {
-    action: "query",
-    titles: `File:${fileName}`,
-    prop: "imageinfo",
-    iiprop: "url|extmetadata",
-    iiurlwidth: String(COVER_WIDTH),
-    iiextmetadatafilter: "Artist|LicenseShortName",
-  });
-  const info = body.query?.pages?.[0]?.imageinfo?.[0];
-  const imageUrl = info?.thumburl ?? info?.url;
-  if (!info || !imageUrl || !isWikimediaImage(imageUrl)) return null;
+  let info: ImageInfo | undefined;
+  try {
+    const body = await api<{
+      query?: { pages?: { imageinfo?: ImageInfo[] }[] };
+    }>(urls().commons, {
+      action: "query",
+      titles: `File:${fileName}`,
+      prop: "imageinfo",
+      iiprop: "url|extmetadata",
+      iiurlwidth: String(COVER_WIDTH),
+      iiextmetadatafilter: "Artist|LicenseShortName",
+    });
+    info = body.query?.pages?.[0]?.imageinfo?.[0];
+    if (!info)
+      console.info(
+        "[wikimedia] keine imageinfo",
+        fileName,
+        JSON.stringify(body).slice(0, 500),
+      );
+  } catch (e) {
+    console.warn("[wikimedia] imageinfo fehlgeschlagen", fileName, e);
+  }
+  const apiUrl = info?.thumburl ?? info?.url;
+  if (apiUrl && isWikimediaImage(apiUrl))
+    return {
+      imageUrl: apiUrl,
+      credit: creditLine(info ?? {}),
+      creditUrl: info?.descriptionurl ?? commonsFilePage(fileName),
+    };
+  // Ohne brauchbare API-Antwort: Vorschaubild direkt aus dem Dateinamen (nur echte Commons).
+  if (process.env.WIKIMEDIA_API_URL) return null;
+  if (apiUrl) console.info("[wikimedia] fremde Bild-URL", apiUrl);
   return {
-    imageUrl,
-    credit: creditLine(info),
-    creditUrl: info.descriptionurl ?? imageUrl,
+    imageUrl: commonsThumbUrl(fileName),
+    credit: creditLine(info ?? {}),
+    creditUrl: commonsFilePage(fileName),
   };
 }
 

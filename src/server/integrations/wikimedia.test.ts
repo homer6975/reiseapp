@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  commonsThumbUrl,
   coverSearchTerms,
   creditLine,
   findCityImage,
@@ -153,7 +154,7 @@ describe("findCityImage", () => {
     expect(calls).toEqual(["de.wikipedia.org", "search"]);
   });
 
-  it("ignores image URLs outside upload.wikimedia.org", async () => {
+  it("builds the thumbnail URL itself for foreign hosts or missing image info", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: string | URL) => {
@@ -171,7 +172,19 @@ describe("findCityImage", () => {
         });
       }),
     );
-    expect(await findCityImage(["X"])).toBeNull();
+    expect(await findCityImage(["X"])).toMatchObject({
+      imageUrl: commonsThumbUrl("X.jpg"),
+      creditUrl: "https://commons.wikimedia.org/wiki/File:X.jpg",
+    });
+  });
+
+  it("derives Commons thumbnail paths from the MD5 of the file name", () => {
+    expect(commonsThumbUrl("Example.jpg")).toBe(
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Example.jpg/1280px-Example.jpg",
+    );
+    expect(commonsThumbUrl("Paderborn Dom asv2024-05 img13.jpg")).toMatch(
+      /\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/Paderborn_Dom_asv2024-05_img13\.jpg\/1280px-Paderborn_Dom_asv2024-05_img13\.jpg$/,
+    );
   });
 
   it("treats MediaWiki errors sent with HTTP 200 as failures", async () => {
