@@ -39,7 +39,11 @@ export function isWikimediaImage(raw: string): boolean {
     const url = new URL(raw);
     const fake = process.env.WIKIMEDIA_API_URL;
     if (fake) return url.origin === new URL(fake).origin;
-    return url.protocol === "https:" && url.host === "upload.wikimedia.org";
+    // Commons liefert Vorschaubilder inzwischen über thumb.wikimedia.org aus.
+    return (
+      url.protocol === "https:" &&
+      ["upload.wikimedia.org", "thumb.wikimedia.org"].includes(url.host)
+    );
   } catch {
     return false;
   }

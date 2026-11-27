@@ -178,6 +178,25 @@ describe("findCityImage", () => {
     });
   });
 
+  it("accepts thumbnails served from thumb.wikimedia.org", async () => {
+    const thumb =
+      "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/X.jpg/1280px-X.jpg?utm_source=commons.wikimedia.org";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL) => {
+        const url = new URL(String(input));
+        if (url.host === "de.wikipedia.org")
+          return json({
+            query: { pages: [{ title: "X", pageimage: "X.jpg" }] },
+          });
+        return json({
+          query: { pages: [{ imageinfo: [{ thumburl: thumb }] }] },
+        });
+      }),
+    );
+    expect((await findCityImage(["X"]))?.imageUrl).toBe(thumb);
+  });
+
   it("derives Commons thumbnail paths from the MD5 of the file name", () => {
     expect(commonsThumbUrl("Example.jpg")).toBe(
       "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Example.jpg/1280px-Example.jpg",
